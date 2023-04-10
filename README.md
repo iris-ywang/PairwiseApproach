@@ -1,6 +1,6 @@
 # PairwiseApproach
 
-### Experiments: Accuracy of sign($$Y_{c2}$$)
+### Experiments: Accuracy of sign(Y_c2)
 
 Run /code/run_Yc2_accuracy.py for all the QSAR datasets (up to the number of datasets specified in the manuscript).
 
