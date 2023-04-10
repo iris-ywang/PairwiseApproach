@@ -5,7 +5,7 @@ Test dataset: 20 samples, 17 features
 
 from pa_basics.import_chembl_data import dataset
 from split_data import generate_train_test_sets
-from build_model import run_model
+from build_model_Yc2_accuracy import run_model
 
 if __name__ == '__main__':
     file = 'test_case.csv'

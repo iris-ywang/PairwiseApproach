@@ -3,52 +3,11 @@ Create all pairs
 """
 
 import numpy as np
-from itertools import permutations
 import multiprocessing
 from sklearn.metrics import jaccard_score
 from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances, manhattan_distances
 
 from scipy.spatial.distance import dice, yule, kulsinski, sokalmichener
-
-
-def paired_data(data, with_similarity=False, with_fp=False, only_fp=False, multiple_tanimoto=False):
-    """
-    Generate all possible pairs from a QSAR dataset
-
-    :param only_fp: bool - if true, the pairwise features only contains original samples' FP
-    :param data: np.array of all samples (train_test) - [y, x1, x2, ..., xn]
-    :param with_similarity: bool - if true, the pairwise features include pairwise similarity measures
-    :param with_fp: bool - if true, the pairwise features include original samples' FP
-    :return: a dict - keys = (ID_a, ID_b); values = [Y_ab, X1, X2, ...Xn]
-    """
-    pairing_tool = PairingDataset(data, with_similarity, with_fp, only_fp, multiple_tanimoto)
-
-    with multiprocessing.Pool() as executor:
-        results = executor.map(pairing_tool.parallelised_pairing_process, range(pairing_tool.n_combinations))
-    return dict(results)
-
-
-class PairingDataset:
-    """
-    This class is built to save/initialise some reference info that is needed repeatly for the pairing process,
-    so that in line 37, we only need to pass iteratively different combinations of sample IDs as argument to
-    generate all the pairs.
-    """
-    def __init__(self, data, with_similarity, with_fp, only_fp, multiple_tanimoto):
-        self.data = data
-        self.feature_variation = [with_similarity, with_fp, only_fp, multiple_tanimoto]
-
-        self.n_samples, self.n_columns = np.shape(data)
-        self.permutation_pairs = list(permutations(range(self.n_samples), 2)) + [(a, a) for a in range(self.n_samples)]
-        self.n_combinations = len(self.permutation_pairs)
-
-    def parallelised_pairing_process(self, combination_id):
-        sample_id_a, sample_id_b = self.permutation_pairs[combination_id]
-        sample_a = self.data[sample_id_a: sample_id_a + 1, :]
-        sample_b = self.data[sample_id_b: sample_id_b + 1, :]
-
-        pair_ab = pair_2samples(self.n_columns, sample_a, sample_b, self.feature_variation)
-        return (sample_id_a, sample_id_b), pair_ab
 
 
 def pair_2samples(n_columns, sample_a, sample_b, feature_variation):

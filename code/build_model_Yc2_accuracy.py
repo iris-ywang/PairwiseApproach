@@ -4,9 +4,7 @@ from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, ndcg_score, \
     accuracy_score, f1_score, precision_score
 from scipy.stats import spearmanr, kendalltau
-from extrapolation_evaluation import EvaluateAbilityToIdentifyTopTestSamples
 from pa_basics.all_pairs import paired_data_by_pair_id
-from pa_basics.rating import rating_trueskill
 
 
 def build_ml_model(model, train_data, test_data=None):
