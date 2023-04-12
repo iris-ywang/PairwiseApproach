@@ -1,7 +1,7 @@
 import numpy as np
 
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, ndcg_score
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, ndcg_score, accuracy_score
 from scipy.stats import spearmanr, kendalltau
 from extrapolation_evaluation import EvaluateAbilityToIdentifyTopTestSamples
 from pa_basics.all_pairs import paired_data_by_pair_id
@@ -76,14 +76,82 @@ def performance_standard_approach(all_data, percentage_of_top_samples):
     sa_model, y_SA = build_ml_model(RandomForestRegressor(n_jobs=-1, random_state=1), all_data['train_set'], all_data['test_set'])
     y_pred_all = np.array(all_data["y_true"])
     y_pred_all[all_data["test_ids"]] = y_SA
-
-    metrics = EvaluateAbilityToIdentifyTopTestSamples(percentage_of_top_samples, all_data["y_true"],
+    metrics_direct_regression = EvaluateAbilityToIdentifyTopTestSamples(percentage_of_top_samples, all_data["y_true"],
                                                       y_pred_all, all_data).run_evaluation()
-    return metrics, sa_model
+    metrics_direct_regression += [
+        spearmanr(all_data['y_true'], y_pred_all, nan_policy="omit")[0],
+        ndcg_score([all_data['y_true']], [y_pred_all])
+        ]
+
+    Y_c2_true, Y_c2_pred = pairwise_differences_for_standard_approach(all_data, "c2", y_pred_all)
+    Y_pa_c2_dist = np.absolute(Y_c2_pred)
+    Y_pa_c2_sign = np.sign(Y_c2_pred)
+    acc_c2 = accuracy_score(Y_c2_true, Y_c2_pred)
+
+    Y_c3_true, Y_c3_pred = pairwise_differences_for_standard_approach(all_data, "c3", y_pred_all)
+    Y_pa_c3_sign = np.sign(Y_c3_pred)
+    acc_c3 = accuracy_score(Y_c3_true, Y_c3_pred)
+
+    Y_c1_true, Y_c1_pred = pairwise_differences_for_standard_approach(all_data, "c1", y_pred_all)
+    Y_pa_c1_sign = np.sign(Y_c1_pred)
+
+    metrics_sign_Yc2, metrics_sign_Yc2c3, metrics_sign_Yc1c2c3 = results_of_pairwise_combinations(
+        all_data, percentage_of_top_samples, Y_pa_c1_sign, Y_pa_c2_sign, Y_pa_c3_sign, Y_pa_c2_dist
+    )
+    return [metrics_direct_regression, metrics_sign_Yc2, metrics_sign_Yc2c3, metrics_sign_Yc1c2c3], [acc_c2, acc_c3]
+
+
+def pairwise_differences_for_standard_approach(all_data, type: str, y_pred_all):
+    Y_true, Y_pred = [], []
+    if type == "c2":
+        combs = all_data["c2_test_pair_ids"]
+    elif type == "c3":
+        combs = all_data["c3_test_pair_ids"]
+    elif type =="c1":
+        combs = all_data["train_pair_ids"]
+    for comb in combs:
+        a, b = comb
+        Y_true.append(np.sign(all_data['y_true'][a] - all_data['y_true'][b]))
+        Y_pred.append(np.sign(y_pred_all[a] - y_pred_all[b]))
+    return Y_true, Y_pred
+
+
+def results_of_pairwise_combinations(
+        all_data, percentage_of_top_samples, Y_pa_c1_sign, Y_pa_c2_sign, Y_pa_c3_sign, Y_pa_c2_dist
+):
+    Y_c2_sign_and_abs_predictions = dict(zip(all_data["c2_test_pair_ids"], np.array([Y_pa_c2_dist, Y_pa_c2_sign]).T))
+
+    y_ranking_c2 = rating_trueskill(Y_pa_c2_sign, all_data["c2_test_pair_ids"], all_data["y_true"])
+    metrics_sign_Yc2 = EvaluateAbilityToIdentifyTopTestSamples(percentage_of_top_samples, all_data["y_true"],
+                                                      y_ranking_c2, all_data).run_evaluation(Y_c2_sign_and_abs_predictions)
+    metrics_sign_Yc2 += [
+        spearmanr(all_data['y_true'], y_ranking_c2, nan_policy="omit")[0],
+        ndcg_score([all_data['y_true']], [y_ranking_c2]),
+        ]
+    y_ranking_c1c2c3 = rating_trueskill(list(np.concatenate([Y_pa_c1_sign, Y_pa_c2_sign, Y_pa_c3_sign])),
+                                        all_data["train_pair_ids"] + all_data["c2_test_pair_ids"] + all_data["c3_test_pair_ids"],
+                                        all_data["y_true"])
+    metrics_sign_Yc1c2c3 = EvaluateAbilityToIdentifyTopTestSamples(percentage_of_top_samples, all_data["y_true"],
+                                                      y_ranking_c1c2c3, all_data).run_evaluation(Y_c2_sign_and_abs_predictions)
+    metrics_sign_Yc1c2c3 += [
+        spearmanr(all_data['y_true'], y_ranking_c1c2c3, nan_policy="omit")[0],
+        ndcg_score([all_data['y_true']], [y_ranking_c1c2c3])
+        ]
+    y_ranking_c2c3 = rating_trueskill(list(np.concatenate([Y_pa_c2_sign, Y_pa_c3_sign])),
+                                      all_data["c2_test_pair_ids"] + all_data["c3_test_pair_ids"],
+                                      all_data["y_true"])
+    metrics_sign_Yc2c3 = EvaluateAbilityToIdentifyTopTestSamples(percentage_of_top_samples, all_data["y_true"],
+                                                      y_ranking_c2c3, all_data).run_evaluation(Y_c2_sign_and_abs_predictions)
+    metrics_sign_Yc2c3 += [
+        spearmanr(all_data['y_true'], y_ranking_c2c3, nan_policy="omit")[0],
+        ndcg_score([all_data['y_true']], [y_ranking_c2c3])
+        ]
+    return metrics_sign_Yc2, metrics_sign_Yc2c3, metrics_sign_Yc1c2c3
 
 
 def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_size=200000):
     runs_of_estimators = len(all_data["train_pair_ids"]) // batch_size
+    Y_pa_c1_sign = []
 
     if runs_of_estimators < 1:
         train_pairs_batch = paired_data_by_pair_id(all_data["train_test"], all_data['train_pair_ids'])
@@ -96,6 +164,7 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
         train_pairs_for_abs = np.absolute(train_pairs_batch)
         rfr = RandomForestRegressor(n_jobs=-1, random_state=1)
         rfr = build_ml_model(rfr, train_pairs_for_abs)
+        Y_pa_c1_sign += list(train_pairs_for_sign[:, 0])
 
     else:
 
@@ -110,7 +179,7 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
 
             train_pairs_for_sign = np.array(train_pairs_batch)
             train_pairs_for_sign[:, 0] = np.sign(train_pairs_for_sign[:, 0])
-            rfc = RandomForestRegressor(n_jobs=-1, random_state=1, warm_start=True)
+            rfc = RandomForestClassifier(n_jobs=-1, random_state=1, warm_start=True)
             rfc = build_ml_model(rfc, train_pairs_for_sign)
 
             train_pairs_for_abs = np.absolute(train_pairs_batch)
@@ -119,6 +188,7 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
 
             rfc.n_estimators += 100
             rfr.n_estimators += 100
+            Y_pa_c1_sign += list(train_pairs_for_sign[:, 0])
 
     c2_test_pair_ids = all_data["c2_test_pair_ids"]
     number_test_batches = len(c2_test_pair_ids) // batch_size
@@ -151,21 +221,20 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
         Y_pa_c3_sign += list(rfc.predict(test_pairs_batch[:, 1:]))
         Y_pa_c3_true += list(test_pairs_batch[:, 0])
 
-    Y_c2_sign_and_abs_predictions = dict(zip(all_data["c2_test_pair_ids"], np.array([Y_pa_c2_dist, Y_pa_c2_sign]).T))
-    y_ranking = rating_trueskill(list(train_pairs_for_sign[:, 0]) +Y_pa_c2_sign + Y_pa_c3_sign,
-                                 all_data["train_pair_ids"] + all_data["c2_test_pair_ids"] + all_data["c3_test_pair_ids"],
-                                 all_data["y_true"])
+    acc_c2 = accuracy_score(np.sign(Y_pa_c2_true), Y_pa_c2_sign)
+    acc_c3 = accuracy_score(np.sign(Y_pa_c3_true), Y_pa_c3_sign)
 
-    metrics = EvaluateAbilityToIdentifyTopTestSamples(percentage_of_top_samples, all_data["y_true"],
-                                                      y_ranking, all_data).run_evaluation(Y_c2_sign_and_abs_predictions)
-    return metrics, rfc, rfr
+    metrics_sign_Yc2, metrics_sign_Yc2c3, metrics_sign_Yc1c2c3 = results_of_pairwise_combinations(
+        all_data, percentage_of_top_samples, Y_pa_c1_sign, Y_pa_c2_sign, Y_pa_c3_sign, Y_pa_c2_dist
+    )
+    return [metrics_sign_Yc2, metrics_sign_Yc2c3, metrics_sign_Yc1c2c3], [acc_c2, acc_c3]
 
 
 def run_model(data, current_dataset_count, percentage_of_top_samples):
-    temporary_file_dataset_count = int(np.load("extrapolation_temporary_dataset_count_rf_rerun2.npy"))
+    temporary_file_dataset_count = int(np.load("extrapolation_temporary_dataset_count_rf_rerun3.npy"))
 
     if current_dataset_count == temporary_file_dataset_count:
-        existing_iterations = np.load("extrapolation_kfold_cv_all_data_temporary_rf_rerun2.npy")
+        existing_iterations = np.load("extrapolation_kfold_cv_all_data_temporary_rf_rerun3.npy")
         existing_count = len(existing_iterations)
         metrics = list(existing_iterations)
     else:
@@ -176,11 +245,12 @@ def run_model(data, current_dataset_count, percentage_of_top_samples):
     for outer_fold, datum in data.items():
         count += 1
         if count <= existing_count: continue
-        metric_sa, rfr_sa = performance_standard_approach(datum, percentage_of_top_samples)
-        metric_pa, rfc_pa, rfr_pa = performance_pairwise_approach(datum, percentage_of_top_samples)
-        metrics.append([metric_sa, metric_pa])
+        metrics_sa, acc_sa = performance_standard_approach(datum, percentage_of_top_samples)
+        metrics_pa, acc_pa = performance_pairwise_approach(datum, percentage_of_top_samples)
+        acc = acc_sa + acc_pa + [0] * (len(metrics_sa[0]) - 4)
+        metrics.append(metrics_sa + metrics_pa + [acc])
 
-        np.save("extrapolation_temporary_dataset_count_rf_rerun2.npy", [current_dataset_count])
-        np.save("extrapolation_kfold_cv_all_data_temporary_rf_rerun2.npy", np.array(metrics))
+        np.save("extrapolation_temporary_dataset_count_rf_rerun3.npy", [current_dataset_count])
+        np.save("extrapolation_kfold_cv_all_data_temporary_rf_rerun3.npy", np.array(metrics))
 
     return np.array([metrics])
