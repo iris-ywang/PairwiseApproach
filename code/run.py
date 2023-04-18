@@ -3,8 +3,9 @@ import numpy as np
 import pandas as pd
 import warnings
 from datetime import datetime
+import openml
 
-from pa_basics.import_chembl_data import dataset
+from pa_basics.import_chembl_data import filter_data
 from split_data import generate_train_test_sets_ids
 from build_model import run_model
 
@@ -44,15 +45,17 @@ def get_chembl_info():
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
 
-    chembl_info_all = pd.read_csv("input//chembl_reg_info.csv")
-    chembl_info = chembl_info_all[chembl_info_all["OpenML ID"] == "24850-27000"]
-    chembl_info = chembl_info[chembl_info_all["N(features)"] > 1000]
+    chembl_info_all = pd.read_csv("input//chembl_meta_ml_info.csv")
+    chembl_info = chembl_info_all[(chembl_info_all["All boolean?"] == False) &
+                                 (chembl_info_all["Half Boolean?"] == False) &
+                                  (chembl_info_all["N(feature)"] <= 50) &
+                                 (chembl_info_all["N(sample)"] >= 30)]
 
     chembl_info = chembl_info.sort_values(by=["N(sample)"])
-    chembl_info = chembl_info[chembl_info["N(sample)"] >= 30]
+
 
     try:
-        existing_results = np.load("extrapolation_kfold_cv_reg_trial6.npy")
+        existing_results = np.load("extrapolation_kfold_cv_reg_trial7.npy")
         existing_count = len(existing_results)
         all_metrics = list(existing_results)
     except:
@@ -61,21 +64,24 @@ if __name__ == '__main__':
         all_metrics = []
 
     try:
-        _ = np.load("extrapolation_temporary_dataset_count_reg_trial6.npy")
+        _ = np.load("extrapolation_temporary_dataset_count_reg_trial7.npy")
     except:
-        np.save("extrapolation_temporary_dataset_count_reg_trial6.npy", [0])
+        np.save("extrapolation_temporary_dataset_count_reg_trial7.npy", [0])
 
     count = 0
     for file in range(len(chembl_info)):
         count += 1
         if count <= existing_count:
             continue
-        connection = "/input/qsar_data_meta/24850-27000/"
-        filename = chembl_info.iloc[file]["File name"]
-        print(datetime.now(), " -- ", "On Dataset No.", count, ", ", filename)
+        data_id = int(chembl_info.iloc[file]["OpenML ID"])
+        chembl_id = int(chembl_info.iloc[file]["ChEMBL ID"])
+        data = openml.datasets.get_dataset(data_id)
+        X, y, categorical_indicator, attribute_names = data.get_data(target=data.default_target_attribute)
 
-        train_test = dataset(os.getcwd() + connection + filename, shuffle_state=1)
-        print(datetime.now(), " -- ", "Generating datasets...")
+        print(datetime.now(), " -- ", "On Dataset No.", count, ", ChEMBL ID ", chembl_id)
+        train_test = pd.concat([y, X], axis=1).to_numpy().astype(np.float64)
+        train_test = filter_data(train_test, shuffle_state=1)
+
         data = generate_train_test_sets_ids(train_test, fold=10)
 
         print(datetime.now(), " -- ", "Running models...")
@@ -83,4 +89,4 @@ if __name__ == '__main__':
         all_metrics.append(metrics[0])
         print(datetime.now(), " -- ")
         print(np.nanmean(metrics[0], axis=0))
-        np.save("extrapolation_kfold_cv_reg_trial6", np.array(all_metrics))
+        np.save("extrapolation_kfold_cv_reg_trial7", np.array(all_metrics))

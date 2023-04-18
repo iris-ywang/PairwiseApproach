@@ -16,6 +16,15 @@ def dataset(filename, shuffle_state=None):
     return filter2
 
 
+def filter_data(train_test, shuffle_state=None):
+    if shuffle_state is not None:
+        train_test = shuffle(train_test, random_state=shuffle_state)
+
+    filter1 = uniform_features(train_test)
+    filter2 = duplicated_features(filter1)
+    filter2[:, 1:] = minmax_scale(filter2[:, 1:])
+    return filter2
+
 def import_data(filename, shuffle_state):
     """
     to import raw data from csv to numpy array
