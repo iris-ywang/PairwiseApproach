@@ -87,7 +87,9 @@ if __name__ == '__main__':
         chembl_id = int(chembl_info.iloc[file]["ChEMBL ID"])
         data = openml.datasets.get_dataset(data_id)
         X, y, categorical_indicator, attribute_names = data.get_data(target=data.default_target_attribute)
-
+        if y.nunique() == 1:
+            print("Dataset No.", count, ", ChEMBL ID ", chembl_id, " only has one value od y. Abort.")
+            continue
         print(datetime.now(), " -- ", "On Dataset No.", count, ", ChEMBL ID ", chembl_id)
 
         train_test = pd.concat([y, X], axis=1)
