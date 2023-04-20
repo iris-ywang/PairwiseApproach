@@ -4,6 +4,8 @@ import pandas as pd
 import warnings
 from datetime import datetime
 import openml
+from sklearn.preprocessing import LabelEncoder
+
 
 from pa_basics.import_chembl_data import filter_data
 from split_data import generate_train_test_sets_ids
@@ -40,6 +42,14 @@ def get_chembl_info():
             ignore_index=True
         )
     return chembl_info
+
+
+def transform_categorical_columns(train_test, col_not_value):
+    print("Transforming categorical features...")
+    label_encoder = LabelEncoder()
+    for col_name in col_not_value:
+        train_test[col_name] = label_encoder.fit_transform(train_test[col_name])
+    return train_test
 
 
 if __name__ == '__main__':
@@ -79,7 +89,15 @@ if __name__ == '__main__':
         X, y, categorical_indicator, attribute_names = data.get_data(target=data.default_target_attribute)
 
         print(datetime.now(), " -- ", "On Dataset No.", count, ", ChEMBL ID ", chembl_id)
-        train_test = pd.concat([y, X], axis=1).to_numpy().astype(np.float64)
+
+        train_test = pd.concat([y, X], axis=1)
+        col_non_numerical = list(train_test.dtypes[train_test.dtypes == "category"].index) + \
+                            list(train_test.dtypes[train_test.dtypes == "object"].index)
+        if col_non_numerical:
+            train_test = transform_categorical_columns(train_test, col_non_numerical)
+
+        train_test = train_test.to_numpy().astype(np.float64)
+
         train_test = filter_data(train_test, shuffle_state=1)
 
         data = generate_train_test_sets_ids(train_test, fold=10)

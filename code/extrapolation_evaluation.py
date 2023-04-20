@@ -136,11 +136,11 @@ class EvaluateAbilityToIdentifyTopTestSamples:
         top_tests_true, tests_better_than_top_train_true, _, _ = self.find_top_test_ids(self.y_true_all)
         top_tests, tests_better_than_top_train, top_train_id, final_estimate_of_y_and_Y = \
             self.find_top_test_ids(self.y_pred_all, Y_sign_and_abs_predictions)
-        print("Number of tops: " + str(len(top_tests_true)) +", " + str(len(tests_better_than_top_train_true)))
-        print('top_tests_true:', top_tests_true)
-        print('top_tests:', top_tests)
-        print('tests_better_than_top_train_true:', tests_better_than_top_train_true)
-        print('tests_better_than_top_train', tests_better_than_top_train)
+        # print("Number of tops: " + str(len(top_tests_true)) +", " + str(len(tests_better_than_top_train_true)))
+        # print('top_tests_true:', top_tests_true)
+        # print('top_tests:', top_tests)
+        # print('tests_better_than_top_train_true:', tests_better_than_top_train_true)
+        # print('tests_better_than_top_train', tests_better_than_top_train)
 
         if len(top_tests_true) > 0:
             # Correct Ratio:
