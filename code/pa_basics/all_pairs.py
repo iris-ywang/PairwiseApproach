@@ -8,7 +8,7 @@ from itertools import permutations
 
 from sklearn.metrics import jaccard_score
 from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances, manhattan_distances
-from sklearn.preprocessing import KBinsDiscretizer
+from sklearn.preprocessing import KBinsDiscretizer, LabelEncoder
 from scipy.spatial.distance import dice, yule, kulsinski, sokalmichener
 
 
@@ -101,17 +101,6 @@ class PairingDatasetByPairID:
 
         return (sample_id_a, sample_id_b), list(pair_ab) + list(sample_a[1:]) + list(sample_b[1:])
 
-def pair_2samples_discretise(sample_a, sample_b, mapping):
-
-    a = sample_a[0, :]
-    b = sample_b[0, :]
-    new_sample = []
-    for feature_id in range(len(a)):
-        feature_combi = (a[feature_id], b[feature_id])
-        new_sample.append(mapping[feature_combi])
-    return new_sample
-
-
 
 class PairingDataByFeature():
     def __init__(self, data, pair_ids, mapping):
@@ -127,42 +116,41 @@ class PairingDataByFeature():
         sample_id_a, sample_id_b = self.permutation_pairs[combination_id]
         sample_a = self.data[sample_id_a: sample_id_a + 1, :]
         sample_b = self.data[sample_id_b: sample_id_b + 1, :]
-
         pair_ab = pair_2samples_discretise(sample_a, sample_b, self.mapping)
 
         return (sample_id_a, sample_id_b), pair_ab
 
 
+def pair_2samples_discretise(sample_a, sample_b, mapping):
+    a = sample_a[0, :]
+    b = sample_b[0, :]
+    new_sample = [a[0] - b[0]]
+
+    for feature_id in range(1, len(a)):
+        feature_combi = (a[feature_id], b[feature_id])
+        new_sample.append(mapping[feature_combi])
+    return new_sample
+
+
 def pair_by_pair_id_per_feature(data, pair_ids):
     n_bins_max = 5
+    data = np.array(data)
     n_samples, n_columns = data.shape
-    results_dict = {}
-    for pair in pair_ids:
-        a, b = pair
-        y = data[a, 0] - data[b, 0]
-        results_dict[pair] = [y]
-
     for feature in range(1, n_columns):
         n_unique = len(np.unique(data[:, feature]))
         if n_unique <= n_bins_max:
-            x_t = np.round(data[:, feature: feature+1] * (n_unique-1), 0)
-            mapping = make_mapping(n_unique)
+            data[:, feature: feature+1] = np.array([LabelEncoder().fit_transform(data[:, feature])]).T
         else:
-            x_t = transform_into_ordinal_features(data[:, feature: feature+1],
+            data[:, feature: feature+1] = transform_into_ordinal_features(data[:, feature: feature+1],
                                                   n_bins=n_bins_max)
-            mapping = make_mapping(n_bins_max)
+    mapping = make_mapping(n_bins_max)
 
-        pairing_tool = PairingDataByFeature(x_t,
-                                            pair_ids,
-                                            mapping)
+    pairing_tool = PairingDataByFeature(data, pair_ids, mapping)
+    with multiprocessing.Pool(processes=None) as executor:
+        results = executor.map(pairing_tool.parallelised_pairing_process, range(pairing_tool.n_combinations))
 
-        with multiprocessing.Pool(processes=None) as executor:
-            results = executor.map(pairing_tool.parallelised_pairing_process, range(pairing_tool.n_combinations))
+    return np.array([values for _, values in dict(results).items()])
 
-        for key, value in dict(results).items():
-            results_dict[key].append(value[0])
-
-    return np.array([values for _, values in dict(results_dict).items()])
 
 
 # utils

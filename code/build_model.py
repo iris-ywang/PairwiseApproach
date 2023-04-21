@@ -1,4 +1,5 @@
 import numpy as np
+from time import time
 
 from sklearn.ensemble import GradientBoostingRegressor, GradientBoostingClassifier
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, ndcg_score, accuracy_score
@@ -226,6 +227,11 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
         else:
             test_pair_id_batch = c3_test_pair_ids[test_batch * batch_size:]
 
+        test_pairs_batch = pair_by_pair_id_per_feature(data=all_data["train_test"],
+                                                       pair_ids=test_pair_id_batch)
+        Y_pa_c3_sign += list(rfc.predict(test_pairs_batch[:, 1:]))
+        Y_pa_c3_true += list(test_pairs_batch[:, 0])
+
     acc_c2 = accuracy_score(np.sign(Y_pa_c2_true), Y_pa_c2_sign)
     acc_c3 = accuracy_score(np.sign(Y_pa_c3_true), Y_pa_c3_sign)
 
@@ -252,10 +258,10 @@ def estimate_y_from_final_ranking_and_absolute_Y(test_ids, ranking, y_true, Y_c2
 
 
 def run_model(data, current_dataset_count, percentage_of_top_samples):
-    temporary_file_dataset_count = int(np.load("extrapolation_temporary_dataset_count_reg_trial7.npy"))
+    temporary_file_dataset_count = int(np.load("extrapolation_temporary_dataset_count_reg_trial8.npy"))
 
     if current_dataset_count == temporary_file_dataset_count:
-        existing_iterations = np.load("extrapolation_kfold_cv_reg_trial7_temporary.npy")
+        existing_iterations = np.load("extrapolation_kfold_cv_reg_trial8_temporary.npy")
         existing_count = len(existing_iterations)
         metrics = list(existing_iterations)
     else:
@@ -270,7 +276,7 @@ def run_model(data, current_dataset_count, percentage_of_top_samples):
         metrics_pa, acc_pa = performance_pairwise_approach(datum, percentage_of_top_samples)
         acc = acc_sa + acc_pa + [0] * (len(metrics_sa[0]) - 4)
         metrics.append(metrics_sa + metrics_pa + [acc])
-        np.save("extrapolation_temporary_dataset_count_reg_trial7.npy", [current_dataset_count])
-        np.save("extrapolation_kfold_cv_reg_trial7_temporary.npy", np.array(metrics))
+        np.save("extrapolation_temporary_dataset_count_reg_trial8.npy", [current_dataset_count])
+        np.save("extrapolation_kfold_cv_reg_trial8_temporary.npy", np.array(metrics))
 
     return np.array([metrics])
