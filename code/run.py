@@ -103,6 +103,7 @@ if __name__ == '__main__':
         if get_repetition_rate(train_test) >= 0.85:
             print("Dataset No.", count, ", ChEMBL ID ", chembl_id,
                   " only has too many repeated y ( > 85% of y are the same). Abort.")
+            continue
 
         train_test = filter_data(train_test, shuffle_state=1)
 
