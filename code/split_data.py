@@ -19,6 +19,11 @@ def data_check(train_test):
 
     return True
 
+def get_repetition_rate(train_test):
+    sample_size = np.shape(train_test)[0]
+    my_dict = {i: list(train_test[:, 0]).count(i) for i in list(train_test[:, 0])}
+    max_repetition = max(my_dict.values())
+    return max_repetition / sample_size
 
 def pair_test_with_train(train_ids, test_ids):
     """

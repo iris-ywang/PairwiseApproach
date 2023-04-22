@@ -8,7 +8,7 @@ from sklearn.preprocessing import LabelEncoder
 
 
 from pa_basics.import_chembl_data import filter_data
-from split_data import generate_train_test_sets_ids
+from split_data import generate_train_test_sets_ids, get_repetition_rate
 from build_model import run_model
 
 def get_chembl_info():
@@ -88,7 +88,7 @@ if __name__ == '__main__':
         data = openml.datasets.get_dataset(data_id)
         X, y, categorical_indicator, attribute_names = data.get_data(target=data.default_target_attribute)
         if y.nunique() == 1:
-            print("Dataset No.", count, ", ChEMBL ID ", chembl_id, " only has one value od y. Abort.")
+            print("Dataset No.", count, ", ChEMBL ID ", chembl_id, " only has one value of y. Abort.")
             continue
         print(datetime.now(), " -- ", "On Dataset No.", count, ", ChEMBL ID ", chembl_id)
 
@@ -100,6 +100,10 @@ if __name__ == '__main__':
 
         train_test = train_test.to_numpy().astype(np.float64)
 
+        if get_repetition_rate(train_test) >= 0.85:
+            print("Dataset No.", count, ", ChEMBL ID ", chembl_id,
+                  " only has too many repeated y ( > 85% of y are the same). Abort.")
+
         train_test = filter_data(train_test, shuffle_state=1)
 
         data = generate_train_test_sets_ids(train_test, fold=10)
@@ -109,4 +113,4 @@ if __name__ == '__main__':
         all_metrics.append(metrics[0])
         print(datetime.now(), " -- ")
         print(np.nanmean(metrics[0], axis=0))
-        np.save("extrapolation_kfold_cv_reg_trial8", np.array(all_metrics))
+        np.save("extrapolation_kfold_cv_reg_trial8.npy", np.array(all_metrics))
