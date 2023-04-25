@@ -5,6 +5,7 @@ Create all pairs
 import numpy as np
 import multiprocessing
 from itertools import permutations
+from time import time
 
 from sklearn.metrics import jaccard_score
 from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances, manhattan_distances
@@ -133,6 +134,7 @@ def pair_2samples_discretise(sample_a, sample_b, mapping):
 
 
 def pair_by_pair_id_per_feature(data, pair_ids):
+    t1 = time()
     n_bins_max = 5
     data = np.array(data)
     n_samples, n_columns = data.shape
@@ -148,7 +150,7 @@ def pair_by_pair_id_per_feature(data, pair_ids):
     pairing_tool = PairingDataByFeature(data, pair_ids, mapping)
     with multiprocessing.Pool(processes=None) as executor:
         results = executor.map(pairing_tool.parallelised_pairing_process, range(pairing_tool.n_combinations))
-
+    print("Time used to pair = ", time() - t1)
     return np.array([values for _, values in dict(results).items()])
 
 

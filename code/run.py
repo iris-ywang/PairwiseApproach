@@ -58,14 +58,14 @@ if __name__ == '__main__':
     chembl_info_all = pd.read_csv("input//chembl_meta_ml_info.csv")
     chembl_info = chembl_info_all[(chembl_info_all["All boolean?"] == False) &
                                  (chembl_info_all["Half Boolean?"] == False) &
-                                  (chembl_info_all["N(feature)"] <= 50) &
+                                  (chembl_info_all["N(feature)"] >= 1000) &
                                  (chembl_info_all["N(sample)"] >= 30)]
 
     chembl_info = chembl_info.sort_values(by=["N(sample)"])
 
 
     try:
-        existing_results = np.load("extrapolation_kfold_cv_reg_trial9.npy")
+        existing_results = np.load("extrapolation_kfold_cv_reg_trial10.npy")
         existing_count = len(existing_results)
         all_metrics = list(existing_results)
     except:
@@ -74,9 +74,9 @@ if __name__ == '__main__':
         all_metrics = []
 
     try:
-        _ = np.load("extrapolation_temporary_dataset_count_reg_trial9.npy")
+        _ = np.load("extrapolation_temporary_dataset_count_reg_trial10.npy")
     except:
-        np.save("extrapolation_temporary_dataset_count_reg_trial9.npy", [0])
+        np.save("extrapolation_temporary_dataset_count_reg_trial10.npy", [0])
 
     count = 0
     for file in range(len(chembl_info)):
@@ -114,4 +114,4 @@ if __name__ == '__main__':
         all_metrics.append(metrics[0])
         print(datetime.now(), " -- ")
         print(np.nanmean(metrics[0], axis=0))
-        np.save("extrapolation_kfold_cv_reg_trial9.npy", np.array(all_metrics))
+        np.save("extrapolation_kfold_cv_reg_trial10.npy", np.array(all_metrics))
