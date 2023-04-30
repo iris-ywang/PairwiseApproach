@@ -157,7 +157,7 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
     Y_pa_c1_sign = []
 
     if runs_of_estimators < 1:
-        train_pairs_batch = pair_by_pair_id_per_feature(data=all_data["train_test"],
+        train_pairs_batch = paired_data_by_pair_id(data=all_data["train_test"],
                                                         pair_ids=all_data['train_pair_ids'])
 
         train_pairs_for_sign = np.array(train_pairs_batch)
@@ -179,7 +179,7 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
             else:
                 train_ids_per_batch = all_data["train_pair_ids"][run * batch_size:]
 
-            train_pairs_batch = pair_by_pair_id_per_feature(data=all_data["train_test"],
+            train_pairs_batch = paired_data_by_pair_id(data=all_data["train_test"],
                                                             pair_ids=train_ids_per_batch)
 
             train_pairs_for_sign = np.array(train_pairs_batch)
@@ -206,7 +206,7 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
                                  test_batch * batch_size: (test_batch + 1) * batch_size]
         else:
             test_pair_id_batch = c2_test_pair_ids[test_batch * batch_size:]
-        test_pairs_batch = pair_by_pair_id_per_feature(data=all_data["train_test"],
+        test_pairs_batch = paired_data_by_pair_id(data=all_data["train_test"],
                                                        pair_ids=test_pair_id_batch)
 
         Y_pa_c2_sign += list(rfc.predict(test_pairs_batch[:, 1:]))
@@ -227,7 +227,7 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
         else:
             test_pair_id_batch = c3_test_pair_ids[test_batch * batch_size:]
 
-        test_pairs_batch = pair_by_pair_id_per_feature(data=all_data["train_test"],
+        test_pairs_batch = paired_data_by_pair_id(data=all_data["train_test"],
                                                        pair_ids=test_pair_id_batch)
         Y_pa_c3_sign += list(rfc.predict(test_pairs_batch[:, 1:]))
         Y_pa_c3_true += list(test_pairs_batch[:, 0])
@@ -258,10 +258,10 @@ def estimate_y_from_final_ranking_and_absolute_Y(test_ids, ranking, y_true, Y_c2
 
 
 def run_model(data, current_dataset_count, percentage_of_top_samples):
-    temporary_file_dataset_count = int(np.load("extrapolation_temporary_dataset_count_reg_trial10.npy"))
+    temporary_file_dataset_count = int(np.load("extrapolation_temporary_dataset_count_reg_trial11.npy"))
 
     if current_dataset_count == temporary_file_dataset_count:
-        existing_iterations = np.load("extrapolation_kfold_cv_reg_trial10_temporary.npy")
+        existing_iterations = np.load("extrapolation_kfold_cv_reg_trial11_temporary.npy")
         existing_count = len(existing_iterations)
         metrics = list(existing_iterations)
     else:
@@ -276,7 +276,7 @@ def run_model(data, current_dataset_count, percentage_of_top_samples):
         metrics_pa, acc_pa = performance_pairwise_approach(datum, percentage_of_top_samples)
         acc = acc_sa + acc_pa + [0] * (len(metrics_sa[0]) - 4)
         metrics.append(metrics_sa + metrics_pa + [acc])
-        np.save("extrapolation_temporary_dataset_count_reg_trial10.npy", [current_dataset_count])
-        np.save("extrapolation_kfold_cv_reg_trial10_temporary.npy", np.array(metrics))
+        np.save("extrapolation_temporary_dataset_count_reg_trial11.npy", [current_dataset_count])
+        np.save("extrapolation_kfold_cv_reg_trial11_temporary.npy", np.array(metrics))
 
     return np.array([metrics])

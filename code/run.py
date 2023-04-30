@@ -65,7 +65,7 @@ if __name__ == '__main__':
 
 
     try:
-        existing_results = np.load("extrapolation_kfold_cv_reg_trial10.npy")
+        existing_results = np.load("extrapolation_kfold_cv_reg_trial11.npy")
         existing_count = len(existing_results)
         all_metrics = list(existing_results)
     except:
@@ -74,9 +74,9 @@ if __name__ == '__main__':
         all_metrics = []
 
     try:
-        _ = np.load("extrapolation_temporary_dataset_count_reg_trial10.npy")
+        _ = np.load("extrapolation_temporary_dataset_count_reg_trial11.npy")
     except:
-        np.save("extrapolation_temporary_dataset_count_reg_trial10.npy", [0])
+        np.save("extrapolation_temporary_dataset_count_reg_trial11.npy", [0])
 
     count = 0
     for file in range(len(chembl_info)):
@@ -114,4 +114,4 @@ if __name__ == '__main__':
         all_metrics.append(metrics[0])
         print(datetime.now(), " -- ")
         print(np.nanmean(metrics[0], axis=0))
-        np.save("extrapolation_kfold_cv_reg_trial10.npy", np.array(all_metrics))
+        np.save("extrapolation_kfold_cv_reg_trial11.npy", np.array(all_metrics))
