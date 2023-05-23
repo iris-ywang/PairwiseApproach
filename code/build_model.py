@@ -158,7 +158,8 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
 
     if runs_of_estimators < 1:
         train_pairs_batch = paired_data_by_pair_id(data=all_data["train_test"],
-                                                        pair_ids=all_data['train_pair_ids'])
+                                                        pair_ids=all_data['train_pair_ids'],
+                                                   sign_only=True)
 
         train_pairs_for_sign = np.array(train_pairs_batch)
         train_pairs_for_sign[:, 0] = np.sign(train_pairs_for_sign[:, 0])
@@ -180,7 +181,8 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
                 train_ids_per_batch = all_data["train_pair_ids"][run * batch_size:]
 
             train_pairs_batch = paired_data_by_pair_id(data=all_data["train_test"],
-                                                            pair_ids=train_ids_per_batch)
+                                                            pair_ids=train_ids_per_batch,
+                                                       sign_only=True)
 
             train_pairs_for_sign = np.array(train_pairs_batch)
             train_pairs_for_sign[:, 0] = np.sign(train_pairs_for_sign[:, 0])
@@ -207,7 +209,8 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
         else:
             test_pair_id_batch = c2_test_pair_ids[test_batch * batch_size:]
         test_pairs_batch = paired_data_by_pair_id(data=all_data["train_test"],
-                                                       pair_ids=test_pair_id_batch)
+                                                       pair_ids=test_pair_id_batch,
+                                                  sign_only=True)
 
         Y_pa_c2_sign += list(rfc.predict(test_pairs_batch[:, 1:]))
         Y_pa_c2_dist += list(rfr.predict(np.absolute(test_pairs_batch[:, 1:])))
@@ -228,7 +231,8 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
             test_pair_id_batch = c3_test_pair_ids[test_batch * batch_size:]
 
         test_pairs_batch = paired_data_by_pair_id(data=all_data["train_test"],
-                                                       pair_ids=test_pair_id_batch)
+                                                       pair_ids=test_pair_id_batch,
+                                                  sign_only=True)
         Y_pa_c3_sign += list(rfc.predict(test_pairs_batch[:, 1:]))
         Y_pa_c3_true += list(test_pairs_batch[:, 0])
 
