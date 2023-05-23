@@ -136,7 +136,7 @@ def pair_2samples_discretise(sample_a, sample_b, mapping):
 
 def pair_by_pair_id_per_feature(data, pair_ids):
     t1 = time()
-    n_bins_max = 5
+    n_bins_max = 10
     data = np.array(data)
     n_samples, n_columns = data.shape
     for feature in range(1, n_columns):
