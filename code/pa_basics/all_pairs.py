@@ -65,7 +65,7 @@ def similarity_metrics(fp1, fp2):
     ]
 
 
-def paired_data_by_pair_id(data, pair_ids, with_similarity=False, with_fp=False, only_fp=False, multiple_tanimoto=False):
+def paired_data_by_pair_id(data, pair_ids, sign_only=False):
     """
     Generate all possible pairs from a QSAR dataset
     :param only_fp: bool - if true, the pairwise features only contains original samples' FP
@@ -77,7 +77,7 @@ def paired_data_by_pair_id(data, pair_ids, with_similarity=False, with_fp=False,
 
     pairing_tool = PairingDatasetByPairID(data,
                                           pair_ids,
-                                          with_similarity, with_fp, only_fp, multiple_tanimoto)
+                                          sign_only)
 
     with multiprocessing.Pool(processes=None) as executor:
         results = executor.map(pairing_tool.parallelised_pairing_process, range(pairing_tool.n_combinations))
@@ -85,13 +85,12 @@ def paired_data_by_pair_id(data, pair_ids, with_similarity=False, with_fp=False,
 
 
 class PairingDatasetByPairID:
-    def __init__(self, data, pair_ids, with_similarity, with_fp, only_fp, multiple_tanimoto):
+    def __init__(self, data, pair_ids, sign_only=True):
         self.data = data
-        self.feature_variation = [with_similarity, with_fp, only_fp, multiple_tanimoto]
-
         self.n_samples, self.n_columns = np.shape(data)
         self.permutation_pairs = pair_ids
         self.n_combinations = len(self.permutation_pairs)
+        self.sign_only = sign_only
 
     def parallelised_pairing_process(self, combination_id):
         sample_id_a, sample_id_b = self.permutation_pairs[combination_id]
@@ -100,6 +99,8 @@ class PairingDatasetByPairID:
 
         pair_ab = sample_a - sample_b
 
+        if self.sign_only:
+            return (sample_id_a, sample_id_b), list(np.sign(pair_ab))
         return (sample_id_a, sample_id_b), list(pair_ab) + list(sample_a[1:]) + list(sample_b[1:])
 
 
