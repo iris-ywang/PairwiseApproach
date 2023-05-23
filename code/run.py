@@ -58,7 +58,7 @@ if __name__ == '__main__':
     chembl_info_all = pd.read_csv("input//chembl_meta_ml_info.csv")
     chembl_info = chembl_info_all[(chembl_info_all["All boolean?"] == False) &
                                  (chembl_info_all["Half Boolean?"] == False) &
-                                  (chembl_info_all["N(feature)"] >= 1000) &
+                                  (chembl_info_all["N(feature)"] <= 50) &
                                  (chembl_info_all["N(sample)"] >= 30)]
 
     chembl_info = chembl_info.sort_values(by=["N(sample)"])
