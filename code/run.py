@@ -80,11 +80,6 @@ if __name__ == '__main__':
         existing_count = 0
         all_metrics = []
 
-    try:
-        _ = np.load("extrapolation_temporary_dataset_count_mentch1.npy")
-    except:
-        np.save("extrapolation_temporary_dataset_count_mentch1.npy", [0])
-
     count = 0
     for file in list_of_dataset:
         count += 1

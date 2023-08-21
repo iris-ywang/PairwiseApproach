@@ -258,15 +258,15 @@ def estimate_y_from_final_ranking_and_absolute_Y(test_ids, ranking, y_true, Y_c2
 
 
 def run_model(data, current_dataset_count, percentage_of_top_samples):
-    temporary_file_dataset_count = int(np.load("extrapolation_temporary_dataset_count_mentch1.npy"))
-
-    if current_dataset_count == temporary_file_dataset_count:
-        existing_iterations = np.load("extrapolation_temporary_mentch1.npy")
-        existing_count = len(existing_iterations)
-        metrics = list(existing_iterations)
-    else:
-        metrics = []
-        existing_count = 0
+    # temporary_file_dataset_count = int(np.load("extrapolation_temporary_dataset_count_mentch1.npy"))
+    #
+    # if current_dataset_count == temporary_file_dataset_count:
+    #     existing_iterations = np.load("extrapolation_temporary_mentch1.npy")
+    #     existing_count = len(existing_iterations)
+    #     metrics = list(existing_iterations)
+    # else:
+    metrics = []
+    existing_count = 0
 
     count = 0
     for outer_fold, datum in data.items():
