@@ -3,13 +3,15 @@ import numpy as np
 import pandas as pd
 import warnings
 from datetime import datetime
-import openml
+import logging
 from sklearn.preprocessing import LabelEncoder
+from sklearn.utils import shuffle
 
-
-from pa_basics.import_chembl_data import filter_data
+from pa_basics.import_chembl_data import filter_data, dataset
 from split_data import generate_train_test_sets_ids, get_repetition_rate
 from build_model import run_model
+
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 def get_chembl_info():
     chembl_info = pd.DataFrame(columns=[
@@ -44,6 +46,17 @@ def get_chembl_info():
     return chembl_info
 
 
+def check_dataset(train_test):
+    y = train_test[:, 0]
+    if pd.Series(y).nunique() == 1:
+        print("Can't pass dataset check with single y value.")
+        return False
+    elif get_repetition_rate(train_test) >= 0.85:
+        print("Can't pass dataset check with repeated y value.")
+        return False
+    return True
+
+
 def transform_categorical_columns(train_test, col_not_value):
     print("Transforming categorical features...")
     label_encoder = LabelEncoder()
@@ -55,17 +68,11 @@ def transform_categorical_columns(train_test, col_not_value):
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
 
-    chembl_info_all = pd.read_csv("input//chembl_meta_ml_info.csv")
-    chembl_info = chembl_info_all[(chembl_info_all["All boolean?"] == False) &
-                                 (chembl_info_all["Half Boolean?"] == False) &
-                                  (chembl_info_all["N(feature)"] <= 50) &
-                                 (chembl_info_all["N(sample)"] >= 30)]
-
-    chembl_info = chembl_info.sort_values(by=["N(sample)"])
-
+    input_data_dir = os.getcwd() + "//input//mentch_regression_clean//"  ##########
+    list_of_dataset = os.listdir(input_data_dir)
 
     try:
-        existing_results = np.load("extrapolation_kfold_cv_reg_trial13.npy")
+        existing_results = np.load("extrapolation_mentch1.npy")
         existing_count = len(existing_results)
         all_metrics = list(existing_results)
     except:
@@ -74,44 +81,56 @@ if __name__ == '__main__':
         all_metrics = []
 
     try:
-        _ = np.load("extrapolation_temporary_dataset_count_reg_trial13.npy")
+        _ = np.load("extrapolation_temporary_dataset_count_mentch1.npy")
     except:
-        np.save("extrapolation_temporary_dataset_count_reg_trial13.npy", [0])
+        np.save("extrapolation_temporary_dataset_count_mentch1.npy", [0])
 
     count = 0
-    for file in range(len(chembl_info)):
+    for file in list_of_dataset:
         count += 1
         if count <= existing_count:
             continue
-        data_id = int(chembl_info.iloc[file]["OpenML ID"])
-        chembl_id = int(chembl_info.iloc[file]["ChEMBL ID"])
-        data = openml.datasets.get_dataset(data_id)
-        X, y, categorical_indicator, attribute_names = data.get_data(target=data.default_target_attribute)
-        if y.nunique() == 1:
-            print("Dataset No.", count, ", ChEMBL ID ", chembl_id, " only has one value of y. Abort.")
-            continue
-        print(datetime.now(), " -- ", "On Dataset No.", count, ", ChEMBL ID ", chembl_id)
 
-        train_test = pd.concat([y, X], axis=1)
-        col_non_numerical = list(train_test.dtypes[train_test.dtypes == "category"].index) + \
-                            list(train_test.dtypes[train_test.dtypes == "object"].index)
-        if col_non_numerical:
-            train_test = transform_categorical_columns(train_test, col_non_numerical)
-
-        train_test = train_test.to_numpy().astype(np.float64)
-
-        if get_repetition_rate(train_test) >= 0.85:
-            print("Dataset No.", count, ", ChEMBL ID ", chembl_id,
-                  " only has too many repeated y ( > 85% of y are the same). Abort.")
+        logging.info(f"Now running dataset: {file}")
+        train_test = dataset(input_data_dir + file, shuffle_state=1, y_col_in_the_last=True)  #############
+        if not check_dataset(train_test):
+            print(f"Dataset {file} does not pass on the check. Ignore this dataset.")
             continue
 
-        train_test = filter_data(train_test, shuffle_state=1)
+        subset = 0
+        while True:
+            subset += 100
+            train_test_shuffled = shuffle(np.array(train_test), random_state=subset)
+            train_test_subset = train_test_shuffled[:subset]
 
-        data = generate_train_test_sets_ids(train_test, fold=10)
+            if not check_dataset(train_test_subset):
+                for try_resubset in range(1, 6):
+                    train_test_shuffled = shuffle(np.array(train_test), random_state=subset + try_resubset)
+                    train_test_subset = train_test_shuffled[:subset]
+                    if check_dataset(train_test_subset):
+                        break
+                if try_resubset == 5:
+                    print(
+                        f"Dataset {file} of subset size {subset} does not pass on the check with 5 random subsets. Ignore this dataset.")
+                    break
+            logging.info(f"Sub dataset size: {subset}")
+            try:
+                logging.info(f"Re-subdivide dataset run (1-5): {try_resubset}")
+            except:
+                pass
 
-        print(datetime.now(), " -- ", "Running models...")
-        metrics = run_model(data, current_dataset_count=count, percentage_of_top_samples=0.1)
-        all_metrics.append(metrics[0])
-        print(datetime.now(), " -- ")
-        print(np.nanmean(metrics[0], axis=0))
-        np.save("extrapolation_kfold_cv_reg_trial13.npy", np.array(all_metrics))
+            data = generate_train_test_sets_ids(train_test_subset, fold=10)   ########
+
+            logging.info("Running models...")
+            metrics = run_model(data, current_dataset_count=count, percentage_of_top_samples=0.1)
+            all_metrics.append(metrics[0])
+
+            logging.info("Model Runs Finished. ")
+            print(np.nanmean(metrics[0], axis=0))
+
+            np.save("extrapolation_mentch1.npy", np.array(all_metrics))
+
+            if subset >= len(train_test) or subset >= 300:
+                logging.info(f"Finished Dataset {file}. ")
+                print("\n \n \n")
+                break

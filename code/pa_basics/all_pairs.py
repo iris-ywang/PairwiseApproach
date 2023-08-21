@@ -105,9 +105,9 @@ class PairingDatasetByPairID:
 
 
 class PairingDataByFeature():
-    def __init__(self, data, pair_ids, mapping):
+    def __init__(self, data, pair_ids, mapping_list):
         self.data = data
-        self.mapping = mapping
+        self.mapping_list = mapping_list
 
         self.n_samples, self.n_columns = np.shape(data)
         self.permutation_pairs = pair_ids
@@ -118,42 +118,46 @@ class PairingDataByFeature():
         sample_id_a, sample_id_b = self.permutation_pairs[combination_id]
         sample_a = self.data[sample_id_a: sample_id_a + 1, :]
         sample_b = self.data[sample_id_b: sample_id_b + 1, :]
-        pair_ab = pair_2samples_discretise(sample_a, sample_b, self.mapping)
+        pair_ab = pair_2samples_discretise(sample_a, sample_b, self.mapping_list)
 
         return (sample_id_a, sample_id_b), pair_ab
 
 
-def pair_2samples_discretise(sample_a, sample_b, mapping):
+def pair_2samples_discretise(sample_a, sample_b, mapping_list):
+    assert sample_a.shape[1] - 1 == len(mapping_list)
     a = sample_a[0, :]
     b = sample_b[0, :]
     new_sample = [a[0] - b[0]]
 
     for feature_id in range(1, len(a)):
-        feature_combi = (a[feature_id], b[feature_id])
-        new_sample.append(mapping[feature_combi])
+        if mapping_list[feature_id-1] is None:
+            new_sample.append(a[feature_id] - b[feature_id])
+            new_sample.append(a[feature_id])
+        else:
+            feature_combi = (a[feature_id], b[feature_id])
+            new_sample.append(mapping_list[feature_id-1][feature_combi])
     return new_sample
 
 
 def pair_by_pair_id_per_feature(data, pair_ids):
     t1 = time()
-    n_bins_max = 10
+    n_bins_max = 2
+    mapping = make_mapping(n_bins_max)
+
     data = np.array(data)
     n_samples, n_columns = data.shape
+    mapping_list = []
     for feature in range(1, n_columns):
         n_unique = len(np.unique(data[:, feature]))
         if n_unique <= n_bins_max:
-            data[:, feature: feature+1] = np.array([LabelEncoder().fit_transform(data[:, feature])]).T
+            mapping_list.append(make_mapping(n_bins_max))
         else:
-            data[:, feature: feature+1] = transform_into_ordinal_features(data[:, feature: feature+1],
-                                                  n_bins=n_bins_max)
-    mapping = make_mapping(n_bins_max)
+            mapping_list.append(None)
 
-    pairing_tool = PairingDataByFeature(data, pair_ids, mapping)
-    with multiprocessing.Pool(processes=None) as executor:
-        results = executor.map(pairing_tool.parallelised_pairing_process, range(pairing_tool.n_combinations))
+    pairing_tool = PairingDataByFeature(data, pair_ids, mapping_list)
+    results = map(pairing_tool.parallelised_pairing_process, range(pairing_tool.n_combinations))
     print("Time used to pair = ", time() - t1)
     return np.array([values for _, values in dict(results).items()])
-
 
 
 # utils

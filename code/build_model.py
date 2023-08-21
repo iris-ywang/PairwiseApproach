@@ -1,5 +1,5 @@
 import numpy as np
-from time import time
+import logging
 
 from sklearn.ensemble import GradientBoostingRegressor, GradientBoostingClassifier
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, ndcg_score, accuracy_score
@@ -258,10 +258,10 @@ def estimate_y_from_final_ranking_and_absolute_Y(test_ids, ranking, y_true, Y_c2
 
 
 def run_model(data, current_dataset_count, percentage_of_top_samples):
-    temporary_file_dataset_count = int(np.load("extrapolation_temporary_dataset_count_reg_trial13.npy"))
+    temporary_file_dataset_count = int(np.load("extrapolation_temporary_dataset_count_mentch1.npy"))
 
     if current_dataset_count == temporary_file_dataset_count:
-        existing_iterations = np.load("extrapolation_kfold_cv_reg_trial13_temporary.npy")
+        existing_iterations = np.load("extrapolation_temporary_mentch1.npy")
         existing_count = len(existing_iterations)
         metrics = list(existing_iterations)
     else:
@@ -272,11 +272,12 @@ def run_model(data, current_dataset_count, percentage_of_top_samples):
     for outer_fold, datum in data.items():
         count += 1
         if count <= existing_count: continue
+        logging.info(f"Running Fold No. {count}")
         metrics_sa, acc_sa = performance_standard_approach(datum, percentage_of_top_samples)
         metrics_pa, acc_pa = performance_pairwise_approach(datum, percentage_of_top_samples)
         acc = acc_sa + acc_pa + [0] * (len(metrics_sa[0]) - 4)
         metrics.append(metrics_sa + metrics_pa + [acc])
-        np.save("extrapolation_temporary_dataset_count_reg_trial13.npy", [current_dataset_count])
-        np.save("extrapolation_kfold_cv_reg_trial13_temporary.npy", np.array(metrics))
+        np.save("extrapolation_temporary_dataset_count_mentch1.npy", [current_dataset_count])
+        np.save("extrapolation_temporary_mentch1.npy", np.array(metrics))
 
     return np.array([metrics])

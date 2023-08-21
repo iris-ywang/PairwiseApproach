@@ -8,8 +8,12 @@ from sklearn.utils import shuffle
 from sklearn.preprocessing import minmax_scale
 
 
-def dataset(filename, shuffle_state=None):
+def dataset(filename, shuffle_state=None, y_col_in_the_last=False):
     orig_data = import_data(filename, shuffle_state)
+
+    if y_col_in_the_last:
+        orig_data[:, [0, -1]] = orig_data[:, [-1, 0]]
+
     filter1 = uniform_features(orig_data)
     filter2 = duplicated_features(filter1)
     filter2[:, 1:] = minmax_scale(filter2[:, 1:])
