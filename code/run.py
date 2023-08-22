@@ -4,10 +4,10 @@ import pandas as pd
 import warnings
 from datetime import datetime
 import logging
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, minmax_scale
 from sklearn.utils import shuffle
 
-from pa_basics.import_chembl_data import filter_data, dataset
+from pa_basics.import_chembl_data import dataset
 from split_data import generate_train_test_sets_ids, get_repetition_rate
 from build_model import run_model
 
@@ -73,17 +73,18 @@ if __name__ == '__main__':
 
     try:
         existing_results = np.load("extrapolation_mentch1.npy")
-        existing_count = len(existing_results)
         all_metrics = list(existing_results)
+        logging.info(f"Loading existing results. ")
     except:
         existing_results = None
-        existing_count = 0
         all_metrics = []
 
     count = 0
     for file in list_of_dataset:
         count += 1
-        if count <= existing_count:
+
+        if file in ["BostonHousing.csv", "bike.csv", "flare.csv", "servo.csv"]:
+            logging.info(f"File {file} has been evaluated. ")
             continue
 
         logging.info(f"Now running dataset: {file}")
@@ -114,6 +115,7 @@ if __name__ == '__main__':
             except:
                 pass
 
+            train_test_subset[:, 1:] = minmax_scale(train_test_subset[:, 1:])
             data = generate_train_test_sets_ids(train_test_subset, fold=10)   ########
 
             logging.info("Running models...")

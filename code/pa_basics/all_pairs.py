@@ -140,7 +140,6 @@ def pair_2samples_discretise(sample_a, sample_b, mapping_list):
 
 
 def pair_by_pair_id_per_feature(data, pair_ids):
-    t1 = time()
     n_bins_max = 2
     mapping = make_mapping(n_bins_max)
 
@@ -156,7 +155,6 @@ def pair_by_pair_id_per_feature(data, pair_ids):
 
     pairing_tool = PairingDataByFeature(data, pair_ids, mapping_list)
     results = map(pairing_tool.parallelised_pairing_process, range(pairing_tool.n_combinations))
-    print("Time used to pair = ", time() - t1)
     return np.array([values for _, values in dict(results).items()])
 
 

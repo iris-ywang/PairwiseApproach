@@ -16,7 +16,6 @@ def dataset(filename, shuffle_state=None, y_col_in_the_last=False):
 
     filter1 = uniform_features(orig_data)
     filter2 = duplicated_features(filter1)
-    filter2[:, 1:] = minmax_scale(filter2[:, 1:])
     return filter2
 
 
