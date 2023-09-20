@@ -115,6 +115,6 @@ if __name__ == '__main__':
         logging.info("Running models...")
         metrics = run_model(data, current_dataset_count=count, percentage_of_top_samples=0.1)
         all_metrics.append(metrics[0])
-        print(datetime.now(), " -- ")
+        logging.info("Finished")
         print(np.nanmean(metrics[0], axis=0))
         np.save("extrapolation_kfold_cv_reg_trial14.npy", np.array(all_metrics))
