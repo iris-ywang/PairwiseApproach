@@ -5,14 +5,14 @@ import ChEMBL dataset and convert it to filtered np.array
 import pandas as pd
 import numpy as np
 from sklearn.utils import shuffle
-from sklearn.preprocessing import minmax_scale
+from sklearn.preprocessing import minmax_scale, OneHotEncoder
 
 
 def dataset(filename, shuffle_state=None):
     orig_data = import_data(filename, shuffle_state)
     filter1 = uniform_features(orig_data)
     filter2 = duplicated_features(filter1)
-    filter2[:, 1:] = minmax_scale(filter2[:, 1:])
+    filter2[:, 1:] = minmax_scale(filter[:, 1:])
     return filter2
 
 
@@ -22,8 +22,9 @@ def filter_data(train_test, shuffle_state=None):
 
     filter1 = uniform_features(train_test)
     filter2 = duplicated_features(filter1)
-    filter2[:, 1:] = minmax_scale(filter2[:, 1:])
-    return filter2
+    filter3 = transform_ordinal_to_boolean(filter2)
+    filter3[:, 1:] = minmax_scale(filter3[:, 1:])
+    return filter3
 
 def import_data(filename, shuffle_state):
     """
@@ -79,3 +80,25 @@ def duplicated_features(data):
     new_train = a[ui].T
     new_train_test = np.concatenate((y, new_train), axis=1)
     return new_train_test
+
+
+def transform_ordinal_to_boolean(data: np.array):
+    n_samples, n_columns = data.shape
+    n_ordinal_limit = 10
+
+    list_of_features_to_transform = []
+    for feature in range(1, n_columns):
+        n_unique = len(np.unique(data[:, feature]))
+
+        if n_unique <= n_ordinal_limit:
+            list_of_features_to_transform.append(feature)
+    if not list_of_features_to_transform:
+        return data
+
+    X_to_transform = data[:, list_of_features_to_transform]
+    onehot_encoder = OneHotEncoder(drop="first")
+    X_transformed = onehot_encoder.fit_transform(X_to_transform).toarray()
+
+    data_transformed = np.delete(data, list_of_features_to_transform, 1)
+    data_transformed = np.concatenate([data_transformed, X_transformed], axis=1)
+    return data_transformed

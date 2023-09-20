@@ -1,7 +1,7 @@
 import numpy as np
 from time import time
 
-from sklearn.ensemble import GradientBoostingRegressor, GradientBoostingClassifier
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, ndcg_score, accuracy_score
 from scipy.stats import spearmanr, kendalltau
 from extrapolation_evaluation import EvaluateAbilityToIdentifyTopTestSamples
@@ -74,7 +74,7 @@ def metrics_evaluation(y_true, y_predict):
 
 
 def performance_standard_approach(all_data, percentage_of_top_samples):
-    sa_model, y_SA = build_ml_model(GradientBoostingRegressor(random_state=1), all_data['train_set'],
+    sa_model, y_SA = build_ml_model(RandomForestRegressor(random_state=1, n_jobs=-1), all_data['train_set'],
                                     all_data['test_set'])
     y_pred_all = np.array(all_data["y_true"])
     y_pred_all[all_data["test_ids"]] = y_SA
@@ -162,11 +162,11 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
 
         train_pairs_for_sign = np.array(train_pairs_batch)
         train_pairs_for_sign[:, 0] = np.sign(train_pairs_for_sign[:, 0])
-        rfc = GradientBoostingClassifier(random_state=1)
+        rfc = RandomForestClassifier(n_jobs=-1, random_state=1)
         rfc = build_ml_model(rfc, train_pairs_for_sign)
 
         train_pairs_for_abs = np.absolute(train_pairs_batch)
-        rfr = GradientBoostingRegressor(random_state=1)
+        rfr = RandomForestRegressor(n_jobs=-1, random_state=1)
         rfr = build_ml_model(rfr, train_pairs_for_abs)
         Y_pa_c1_sign += list(train_pairs_for_sign[:, 0])
 
@@ -184,11 +184,11 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
 
             train_pairs_for_sign = np.array(train_pairs_batch)
             train_pairs_for_sign[:, 0] = np.sign(train_pairs_for_sign[:, 0])
-            rfc = GradientBoostingClassifier(random_state=1, warm_start=True)
+            rfc = RandomForestClassifier(n_jobs=-1, random_state=1, warm_start=True)
             rfc = build_ml_model(rfc, train_pairs_for_sign)
 
             train_pairs_for_abs = np.absolute(train_pairs_batch)
-            rfr = GradientBoostingRegressor( random_state=1, warm_start=True)
+            rfr = RandomForestRegressor(n_jobs=-1, random_state=1, warm_start=True)
             rfr = build_ml_model(rfr, train_pairs_for_abs)
             Y_pa_c1_sign += list(train_pairs_for_sign[:, 0])
 
@@ -202,12 +202,12 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
     Y_pa_c2_true = []
     for test_batch in range(number_test_batches + 1):
         if test_batch != number_test_batches + 1:
-            test_pair_id_batch = c2_test_pair_ids[
+            c2_test_pair_id_batch = c2_test_pair_ids[
                                  test_batch * batch_size: (test_batch + 1) * batch_size]
         else:
-            test_pair_id_batch = c2_test_pair_ids[test_batch * batch_size:]
+            c2_test_pair_id_batch = c2_test_pair_ids[test_batch * batch_size:]
         test_pairs_batch = pair_by_pair_id_per_feature(data=all_data["train_test"],
-                                                       pair_ids=test_pair_id_batch)
+                                                       pair_ids=c2_test_pair_id_batch)
 
         Y_pa_c2_sign += list(rfc.predict(test_pairs_batch[:, 1:]))
         Y_pa_c2_dist += list(rfr.predict(np.absolute(test_pairs_batch[:, 1:])))
@@ -222,13 +222,13 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
     Y_pa_c3_true = []
     for test_batch in range(number_test_batches + 1):
         if test_batch != number_test_batches:
-            test_pair_id_batch = c3_test_pair_ids[
+            c3_test_pair_id_batch = c3_test_pair_ids[
                                  test_batch * batch_size: (test_batch + 1) * batch_size]
         else:
-            test_pair_id_batch = c3_test_pair_ids[test_batch * batch_size:]
+            c3_test_pair_id_batch = c3_test_pair_ids[test_batch * batch_size:]
 
         test_pairs_batch = pair_by_pair_id_per_feature(data=all_data["train_test"],
-                                                       pair_ids=test_pair_id_batch)
+                                                       pair_ids=c3_test_pair_id_batch)
         Y_pa_c3_sign += list(rfc.predict(test_pairs_batch[:, 1:]))
         Y_pa_c3_true += list(test_pairs_batch[:, 0])
 
@@ -258,10 +258,10 @@ def estimate_y_from_final_ranking_and_absolute_Y(test_ids, ranking, y_true, Y_c2
 
 
 def run_model(data, current_dataset_count, percentage_of_top_samples):
-    temporary_file_dataset_count = int(np.load("extrapolation_temporary_dataset_count_reg_trial13.npy"))
+    temporary_file_dataset_count = int(np.load("extrapolation_temporary_dataset_count_reg_trial14.npy"))
 
     if current_dataset_count == temporary_file_dataset_count:
-        existing_iterations = np.load("extrapolation_kfold_cv_reg_trial13_temporary.npy")
+        existing_iterations = np.load("extrapolation_kfold_cv_reg_trial14_temporary.npy")
         existing_count = len(existing_iterations)
         metrics = list(existing_iterations)
     else:
@@ -276,7 +276,7 @@ def run_model(data, current_dataset_count, percentage_of_top_samples):
         metrics_pa, acc_pa = performance_pairwise_approach(datum, percentage_of_top_samples)
         acc = acc_sa + acc_pa + [0] * (len(metrics_sa[0]) - 4)
         metrics.append(metrics_sa + metrics_pa + [acc])
-        np.save("extrapolation_temporary_dataset_count_reg_trial13.npy", [current_dataset_count])
-        np.save("extrapolation_kfold_cv_reg_trial13_temporary.npy", np.array(metrics))
+        np.save("extrapolation_temporary_dataset_count_reg_trial14.npy", [current_dataset_count])
+        np.save("extrapolation_kfold_cv_reg_trial14_temporary.npy", np.array(metrics))
 
     return np.array([metrics])

@@ -1,15 +1,18 @@
+import logging
 import os
 import numpy as np
 import pandas as pd
 import warnings
 from datetime import datetime
 import openml
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 
 
 from pa_basics.import_chembl_data import filter_data
 from split_data import generate_train_test_sets_ids, get_repetition_rate
 from build_model import run_model
+
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 def get_chembl_info():
     chembl_info = pd.DataFrame(columns=[
@@ -65,7 +68,7 @@ if __name__ == '__main__':
 
 
     try:
-        existing_results = np.load("extrapolation_kfold_cv_reg_trial13.npy")
+        existing_results = np.load("extrapolation_kfold_cv_reg_trial14.npy")
         existing_count = len(existing_results)
         all_metrics = list(existing_results)
     except:
@@ -74,9 +77,9 @@ if __name__ == '__main__':
         all_metrics = []
 
     try:
-        _ = np.load("extrapolation_temporary_dataset_count_reg_trial13.npy")
+        _ = np.load("extrapolation_temporary_dataset_count_reg_trial14.npy")
     except:
-        np.save("extrapolation_temporary_dataset_count_reg_trial13.npy", [0])
+        np.save("extrapolation_temporary_dataset_count_reg_trial14.npy", [0])
 
     count = 0
     for file in range(len(chembl_info)):
@@ -87,11 +90,17 @@ if __name__ == '__main__':
         chembl_id = int(chembl_info.iloc[file]["ChEMBL ID"])
         data = openml.datasets.get_dataset(data_id)
         X, y, categorical_indicator, attribute_names = data.get_data(target=data.default_target_attribute)
-        if y.nunique() == 1:
-            print("Dataset No.", count, ", ChEMBL ID ", chembl_id, " only has one value of y. Abort.")
-            continue
-        print(datetime.now(), " -- ", "On Dataset No.", count, ", ChEMBL ID ", chembl_id)
 
+        # Exclude datasets with following traits
+        if y.nunique() == 1:
+            logging.info(f"Dataset No. {count}, ChEMBL ID {chembl_id}, only has one value of y. Abort.")
+            continue
+
+        if get_repetition_rate(np.array([y]).T) >= 0.85:
+            logging.info(f"Dataset No. {count}, ChEMBL ID {chembl_id}, has too many repeated y ( > 85% of y are the same). Abort.")
+            continue
+
+        logging.info(f"Running on Dataset No. {count}, ChEMBL ID {chembl_id}, OpenML ID {data_id}")
         train_test = pd.concat([y, X], axis=1)
         col_non_numerical = list(train_test.dtypes[train_test.dtypes == "category"].index) + \
                             list(train_test.dtypes[train_test.dtypes == "object"].index)
@@ -99,19 +108,13 @@ if __name__ == '__main__':
             train_test = transform_categorical_columns(train_test, col_non_numerical)
 
         train_test = train_test.to_numpy().astype(np.float64)
-
-        if get_repetition_rate(train_test) >= 0.85:
-            print("Dataset No.", count, ", ChEMBL ID ", chembl_id,
-                  " only has too many repeated y ( > 85% of y are the same). Abort.")
-            continue
-
         train_test = filter_data(train_test, shuffle_state=1)
 
         data = generate_train_test_sets_ids(train_test, fold=10)
 
-        print(datetime.now(), " -- ", "Running models...")
+        logging.info("Running models...")
         metrics = run_model(data, current_dataset_count=count, percentage_of_top_samples=0.1)
         all_metrics.append(metrics[0])
         print(datetime.now(), " -- ")
         print(np.nanmean(metrics[0], axis=0))
-        np.save("extrapolation_kfold_cv_reg_trial13.npy", np.array(all_metrics))
+        np.save("extrapolation_kfold_cv_reg_trial14.npy", np.array(all_metrics))
