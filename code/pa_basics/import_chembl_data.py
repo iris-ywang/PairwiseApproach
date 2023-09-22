@@ -1,7 +1,7 @@
 """
 import ChEMBL dataset and convert it to filtered np.array
 """
-
+import logging
 import pandas as pd
 import numpy as np
 from sklearn.utils import shuffle
@@ -101,4 +101,5 @@ def transform_ordinal_to_boolean(data: np.array):
 
     data_transformed = np.delete(data, list_of_features_to_transform, 1)
     data_transformed = np.concatenate([data_transformed, X_transformed], axis=1)
+    logging.info(f"Dataset is of size {n_samples}. After transformation, number of features changed from {n_columns-1} to {data_transformed.shape[1]-1}.")
     return data_transformed

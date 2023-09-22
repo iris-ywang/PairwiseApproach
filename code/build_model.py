@@ -258,10 +258,10 @@ def estimate_y_from_final_ranking_and_absolute_Y(test_ids, ranking, y_true, Y_c2
 
 
 def run_model(data, current_dataset_count, percentage_of_top_samples):
-    temporary_file_dataset_count = int(np.load("extrapolation_temporary_dataset_count_reg_trial14.npy"))
+    temporary_file_dataset_count = int(np.load("extrapolation_temporary_dataset_count_reg_trial15.npy"))
 
     if current_dataset_count == temporary_file_dataset_count:
-        existing_iterations = np.load("extrapolation_kfold_cv_reg_trial14_temporary.npy")
+        existing_iterations = np.load("extrapolation_kfold_cv_reg_trial15_temporary.npy")
         existing_count = len(existing_iterations)
         metrics = list(existing_iterations)
     else:
@@ -276,7 +276,7 @@ def run_model(data, current_dataset_count, percentage_of_top_samples):
         metrics_pa, acc_pa = performance_pairwise_approach(datum, percentage_of_top_samples)
         acc = acc_sa + acc_pa + [0] * (len(metrics_sa[0]) - 4)
         metrics.append(metrics_sa + metrics_pa + [acc])
-        np.save("extrapolation_temporary_dataset_count_reg_trial14.npy", [current_dataset_count])
-        np.save("extrapolation_kfold_cv_reg_trial14_temporary.npy", np.array(metrics))
+        np.save("extrapolation_temporary_dataset_count_reg_trial15.npy", [current_dataset_count])
+        np.save("extrapolation_kfold_cv_reg_trial15_temporary.npy", np.array(metrics))
 
     return np.array([metrics])
