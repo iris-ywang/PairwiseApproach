@@ -1,11 +1,11 @@
 import numpy as np
-from time import time
+import os
 
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.svm import SVR, SVC
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, ndcg_score, accuracy_score
 from scipy.stats import spearmanr, kendalltau
 from extrapolation_evaluation import EvaluateAbilityToIdentifyTopTestSamples
-from pa_basics.all_pairs import pair_by_pair_id_per_feature, paired_data_by_pair_id
+from pa_basics.all_pairs import pair_by_pair_id_per_feature
 from pa_basics.rating import rating_trueskill
 
 
@@ -74,8 +74,11 @@ def metrics_evaluation(y_true, y_predict):
 
 
 def performance_standard_approach(all_data, percentage_of_top_samples):
-    sa_model, y_SA = build_ml_model(RandomForestRegressor(random_state=1, n_jobs=-1), all_data['train_set'],
-                                    all_data['test_set'])
+    sa_model, y_SA = build_ml_model(
+        SVR(),
+        all_data['train_set'],
+        all_data['test_set']
+    )
     y_pred_all = np.array(all_data["y_true"])
     y_pred_all[all_data["test_ids"]] = y_SA
 
@@ -162,11 +165,11 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
 
         train_pairs_for_sign = np.array(train_pairs_batch)
         train_pairs_for_sign[:, 0] = np.sign(train_pairs_for_sign[:, 0])
-        rfc = RandomForestClassifier(n_jobs=-1, random_state=1)
+        rfc = SVC()
         rfc = build_ml_model(rfc, train_pairs_for_sign)
 
         train_pairs_for_abs = np.absolute(train_pairs_batch)
-        rfr = RandomForestRegressor(n_jobs=-1, random_state=1)
+        rfr = SVR()
         rfr = build_ml_model(rfr, train_pairs_for_abs)
         Y_pa_c1_sign += list(train_pairs_for_sign[:, 0])
 
@@ -184,11 +187,11 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
 
             train_pairs_for_sign = np.array(train_pairs_batch)
             train_pairs_for_sign[:, 0] = np.sign(train_pairs_for_sign[:, 0])
-            rfc = RandomForestClassifier(n_jobs=-1, random_state=1, warm_start=True)
+            rfc = SVC(warm_start=True)
             rfc = build_ml_model(rfc, train_pairs_for_sign)
 
             train_pairs_for_abs = np.absolute(train_pairs_batch)
-            rfr = RandomForestRegressor(n_jobs=-1, random_state=1, warm_start=True)
+            rfr = SVR(warm_start=True)
             rfr = build_ml_model(rfr, train_pairs_for_abs)
             Y_pa_c1_sign += list(train_pairs_for_sign[:, 0])
 
@@ -257,14 +260,14 @@ def estimate_y_from_final_ranking_and_absolute_Y(test_ids, ranking, y_true, Y_c2
     return mean_estimates
 
 
-def run_model(data, current_dataset_count, percentage_of_top_samples):
-    temporary_file_dataset_count = int(np.load("extrapolation_temporary_dataset_count_reg_trial15.npy"))
-
-    if current_dataset_count == temporary_file_dataset_count:
-        existing_iterations = np.load("extrapolation_kfold_cv_reg_trial15_temporary.npy")
+def run_model(data, current_data_id, percentage_of_top_samples):
+    try:
+        existing_iterations = np.load(
+            os.getcwd() + "/extrapolation_svm_reg_chembl/" + "extrapolation_svm_reg_chembl_cv_temperary_"+str(current_data_id)+".npy"
+        )
         existing_count = len(existing_iterations)
         metrics = list(existing_iterations)
-    else:
+    except FileNotFoundError:
         metrics = []
         existing_count = 0
 
@@ -276,7 +279,6 @@ def run_model(data, current_dataset_count, percentage_of_top_samples):
         metrics_pa, acc_pa = performance_pairwise_approach(datum, percentage_of_top_samples)
         acc = acc_sa + acc_pa + [0] * (len(metrics_sa[0]) - 4)
         metrics.append(metrics_sa + metrics_pa + [acc])
-        np.save("extrapolation_temporary_dataset_count_reg_trial15.npy", [current_dataset_count])
-        np.save("extrapolation_kfold_cv_reg_trial15_temporary.npy", np.array(metrics))
+        np.save(os.getcwd() + "/extrapolation_svm_reg_chembl/" + "extrapolation_svm_reg_chembl_cv_temperary_"+str(current_data_id)+".npy", np.array(metrics))
 
     return np.array([metrics])
