@@ -1,7 +1,7 @@
 import numpy as np
 import os
 
-from sklearn.svm import SVR, SVC
+from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, ndcg_score, accuracy_score
 from scipy.stats import spearmanr, kendalltau
 from extrapolation_evaluation import EvaluateAbilityToIdentifyTopTestSamples
@@ -75,7 +75,7 @@ def metrics_evaluation(y_true, y_predict):
 
 def performance_standard_approach(all_data, percentage_of_top_samples):
     sa_model, y_SA = build_ml_model(
-        SVR(),
+        GradientBoostingRegressor(random_state=1),
         all_data['train_set'],
         all_data['test_set']
     )
@@ -165,11 +165,11 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
 
         train_pairs_for_sign = np.array(train_pairs_batch)
         train_pairs_for_sign[:, 0] = np.sign(train_pairs_for_sign[:, 0])
-        rfc = SVC()
+        rfc = GradientBoostingClassifier(random_state=1)
         rfc = build_ml_model(rfc, train_pairs_for_sign)
 
         train_pairs_for_abs = np.absolute(train_pairs_batch)
-        rfr = SVR()
+        rfr = GradientBoostingRegressor(random_state=1)
         rfr = build_ml_model(rfr, train_pairs_for_abs)
         Y_pa_c1_sign += list(train_pairs_for_sign[:, 0])
 
@@ -187,11 +187,11 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
 
             train_pairs_for_sign = np.array(train_pairs_batch)
             train_pairs_for_sign[:, 0] = np.sign(train_pairs_for_sign[:, 0])
-            rfc = SVC(warm_start=True)
+            rfc = GradientBoostingClassifier(random_state=1, warm_start=True)
             rfc = build_ml_model(rfc, train_pairs_for_sign)
 
             train_pairs_for_abs = np.absolute(train_pairs_batch)
-            rfr = SVR(warm_start=True)
+            rfr = GradientBoostingRegressor(random_state=1, warm_start=True)
             rfr = build_ml_model(rfr, train_pairs_for_abs)
             Y_pa_c1_sign += list(train_pairs_for_sign[:, 0])
 
@@ -263,7 +263,7 @@ def estimate_y_from_final_ranking_and_absolute_Y(test_ids, ranking, y_true, Y_c2
 def run_model(data, current_data_id, percentage_of_top_samples):
     try:
         existing_iterations = np.load(
-            os.getcwd() + "/extrapolation_svm_reg_chembl2/" + "extrapolation_svm_reg_chembl2_cv_temperary_"+str(current_data_id)+".npy"
+            os.getcwd() + "/extrapolation_xgb_reg_chembl2/" + "extrapolation_xgb_reg_chembl2_cv_temperary_"+str(current_data_id)+".npy"
         )
         existing_count = len(existing_iterations)
         metrics = list(existing_iterations)
@@ -279,6 +279,6 @@ def run_model(data, current_data_id, percentage_of_top_samples):
         metrics_pa, acc_pa = performance_pairwise_approach(datum, percentage_of_top_samples)
         acc = acc_sa + acc_pa + [0] * (len(metrics_sa[0]) - 4)
         metrics.append(metrics_sa + metrics_pa + [acc])
-        np.save(os.getcwd() + "/extrapolation_svm_reg_chembl2/" + "extrapolation_svm_reg_chembl2_cv_temperary_"+str(current_data_id)+".npy", np.array(metrics))
+        np.save(os.getcwd() + "/extrapolation_xgb_reg_chembl2/" + "extrapolation_xgb_reg_chembl2_cv_temperary_"+str(current_data_id)+".npy", np.array(metrics))
 
     return np.array([metrics])

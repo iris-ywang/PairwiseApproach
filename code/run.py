@@ -69,9 +69,9 @@ def run_datasets_in_parallel(file, chembl_info):
             f"Dataset ID. {data_id}, ChEMBL ID {chembl_id}, only has one value of y, "
             f"or has too many repeated y ( > 85% of y are the same). Abort.")
 
-        invalid_datasets = np.load(os.getcwd() + "/extrapolation_svm_reg_chembl2/" + "invalid_datasets.npy")
+        invalid_datasets = np.load(os.getcwd() + "/extrapolation_xgb_reg_chembl2/" + "invalid_datasets.npy")
         invalid_datasets.append(data_id)
-        np.save(os.getcwd() + "/extrapolation_svm_reg_chembl2/" + "invalid_datasets.npy", invalid_datasets)
+        np.save(os.getcwd() + "/extrapolation_xgb_reg_chembl2/" + "invalid_datasets.npy", invalid_datasets)
         return
 
     logging.info(f"Running on ChEMBL ID {chembl_id}, OpenML ID {data_id}")
@@ -90,13 +90,13 @@ def run_datasets_in_parallel(file, chembl_info):
     metrics = run_model(data, current_data_id=data_id, percentage_of_top_samples=0.1)
     logging.info("Finished")
 
-    np.save(os.getcwd() + "/extrapolation_svm_reg_chembl2/" + "extrapolation_svm_reg_chembl2_cv_"+str(data_id)+".npy", metrics)
+    np.save(os.getcwd() + "/extrapolation_xgb_reg_chembl2/" + "extrapolation_xgb_reg_chembl2_cv_"+str(data_id)+".npy", metrics)
     return
 
 
 def count_finished_datasets(sorted_chembl_info):
     existing_count = 0
-    invalid_datasets = np.load(os.getcwd() + "/extrapolation_svm_reg_chembl2/" + "invalid_datasets.npy")
+    invalid_datasets = np.load(os.getcwd() + "/extrapolation_xgb_reg_chembl2/" + "invalid_datasets.npy")
 
     for file in range(len(sorted_chembl_info)):
         data_id = int(sorted_chembl_info.iloc[file]["OpenML ID"])
@@ -104,7 +104,7 @@ def count_finished_datasets(sorted_chembl_info):
             existing_count += 1
             continue
         try:
-            _ = np.load(os.getcwd() + "/extrapolation_svm_reg_chembl2/" + "extrapolation_svm_reg_chembl2_cv_"+str(data_id)+".npy",)
+            _ = np.load(os.getcwd() + "/extrapolation_xgb_reg_chembl2/" + "extrapolation_xgb_reg_chembl2_cv_"+str(data_id)+".npy",)
             existing_count += 1
         except FileNotFoundError:
             return existing_count
@@ -114,9 +114,9 @@ def count_finished_datasets(sorted_chembl_info):
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
     try:
-        _ = np.load(os.getcwd() + "/extrapolation_svm_reg_chembl2/" + "invalid_datasets.npy")
+        _ = np.load(os.getcwd() + "/extrapolation_xgb_reg_chembl2/" + "invalid_datasets.npy")
     except:
-        np.save(os.getcwd() + "/extrapolation_svm_reg_chembl2/" + "invalid_datasets.npy", [])
+        np.save(os.getcwd() + "/extrapolation_xgb_reg_chembl2/" + "invalid_datasets.npy", [])
 
     chembl_info_all = pd.read_csv("input//chembl_meta_ml_info.csv")
     chembl_info = chembl_info_all[(chembl_info_all["All boolean?"] == False) &
