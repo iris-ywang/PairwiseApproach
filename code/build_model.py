@@ -263,7 +263,7 @@ def estimate_y_from_final_ranking_and_absolute_Y(test_ids, ranking, y_true, Y_c2
 def run_model(data, current_data_id, percentage_of_top_samples):
     try:
         existing_iterations = np.load(
-            os.getcwd() + "/extrapolation_xgb_reg_chembl2/" + "extrapolation_xgb_reg_chembl2_cv_temperary_"+str(current_data_id)+".npy"
+            os.getcwd() + "/extrapolation_xgb_reg_chembl/" + "extrapolation_xgb_reg_chembl_cv_temperary_"+str(current_data_id)+".npy"
         )
         existing_count = len(existing_iterations)
         metrics = list(existing_iterations)
@@ -279,6 +279,6 @@ def run_model(data, current_data_id, percentage_of_top_samples):
         metrics_pa, acc_pa = performance_pairwise_approach(datum, percentage_of_top_samples)
         acc = acc_sa + acc_pa + [0] * (len(metrics_sa[0]) - 4)
         metrics.append(metrics_sa + metrics_pa + [acc])
-        np.save(os.getcwd() + "/extrapolation_xgb_reg_chembl2/" + "extrapolation_xgb_reg_chembl2_cv_temperary_"+str(current_data_id)+".npy", np.array(metrics))
+        np.save(os.getcwd() + "/extrapolation_xgb_reg_chembl/" + "extrapolation_xgb_reg_chembl_cv_temperary_"+str(current_data_id)+".npy", np.array(metrics))
 
     return np.array([metrics])
