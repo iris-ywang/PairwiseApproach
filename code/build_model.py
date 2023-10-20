@@ -1,7 +1,9 @@
+import logging
+
 import numpy as np
 import os
 
-from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
+from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, ndcg_score, accuracy_score
 from scipy.stats import spearmanr, kendalltau
 from extrapolation_evaluation import EvaluateAbilityToIdentifyTopTestSamples
@@ -75,7 +77,7 @@ def metrics_evaluation(y_true, y_predict):
 
 def performance_standard_approach(all_data, percentage_of_top_samples):
     sa_model, y_SA = build_ml_model(
-        GradientBoostingRegressor(random_state=1),
+        LinearRegression(),
         all_data['train_set'],
         all_data['test_set']
     )
@@ -155,48 +157,25 @@ def results_of_pairwise_combinations(
     return metrics_sign_Yc2, metrics_sign_Yc2c3, metrics_sign_Yc1c2c3
 
 
-def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_size=1000000):
+def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_size=10000000):
     runs_of_estimators = len(all_data["train_pair_ids"]) // batch_size
     Y_pa_c1_sign = []
 
-    if runs_of_estimators < 1:
-        train_pairs_batch = pair_by_pair_id_per_feature(data=all_data["train_test"],
-                                                        pair_ids=all_data['train_pair_ids'])
+    train_pairs_batch = pair_by_pair_id_per_feature(data=all_data["train_test"],
+                                                    pair_ids=all_data['train_pair_ids'])
 
-        train_pairs_for_sign = np.array(train_pairs_batch)
-        train_pairs_for_sign[:, 0] = np.sign(train_pairs_for_sign[:, 0])
-        rfc = GradientBoostingClassifier(random_state=1)
-        rfc = build_ml_model(rfc, train_pairs_for_sign)
+    train_pairs_for_sign = np.array(train_pairs_batch)
+    train_pairs_for_sign[:, 0] = 2*(train_pairs_for_sign[:, 0] >= 0) - 1  # for logistic reg, using binary signs.
+    rfc = LogisticRegression()
+    rfc = build_ml_model(rfc, train_pairs_for_sign)
 
-        train_pairs_for_abs = np.absolute(train_pairs_batch)
-        rfr = GradientBoostingRegressor(random_state=1)
-        rfr = build_ml_model(rfr, train_pairs_for_abs)
-        Y_pa_c1_sign += list(train_pairs_for_sign[:, 0])
+    train_pairs_for_abs = np.absolute(train_pairs_batch)
+    rfr = LinearRegression()
+    rfr = build_ml_model(rfr, train_pairs_for_abs)
+    Y_pa_c1_sign += list(train_pairs_for_sign[:, 0])
 
-    else:
-
-        for run in range(runs_of_estimators + 1):
-            if run < runs_of_estimators:
-                train_ids_per_batch = all_data["train_pair_ids"][run * batch_size:(run + 1) * batch_size]
-
-            else:
-                train_ids_per_batch = all_data["train_pair_ids"][run * batch_size:]
-
-            train_pairs_batch = pair_by_pair_id_per_feature(data=all_data["train_test"],
-                                                            pair_ids=train_ids_per_batch)
-
-            train_pairs_for_sign = np.array(train_pairs_batch)
-            train_pairs_for_sign[:, 0] = np.sign(train_pairs_for_sign[:, 0])
-            rfc = GradientBoostingClassifier(random_state=1, warm_start=True)
-            rfc = build_ml_model(rfc, train_pairs_for_sign)
-
-            train_pairs_for_abs = np.absolute(train_pairs_batch)
-            rfr = GradientBoostingRegressor(random_state=1, warm_start=True)
-            rfr = build_ml_model(rfr, train_pairs_for_abs)
-            Y_pa_c1_sign += list(train_pairs_for_sign[:, 0])
-
-            rfc.n_estimators += 100
-            rfr.n_estimators += 100
+    if runs_of_estimators >= 1:
+        logging.WARNING("Pairwise dataset is to large and over the batch size. Just returning results from one batch")
 
     c2_test_pair_ids = all_data["c2_test_pair_ids"]
     number_test_batches = len(c2_test_pair_ids) // batch_size
@@ -263,7 +242,7 @@ def estimate_y_from_final_ranking_and_absolute_Y(test_ids, ranking, y_true, Y_c2
 def run_model(data, current_data_id, percentage_of_top_samples):
     try:
         existing_iterations = np.load(
-            os.getcwd() + "/extrapolation_xgb_reg_chembl/" + "extrapolation_xgb_reg_chembl_cv_temperary_"+str(current_data_id)+".npy"
+            os.getcwd() + "/extrapolation_lr_reg_chembl/" + "extrapolation_lr_reg_chembl_cv_temperary_"+str(current_data_id)+".npy"
         )
         existing_count = len(existing_iterations)
         metrics = list(existing_iterations)
@@ -279,6 +258,6 @@ def run_model(data, current_data_id, percentage_of_top_samples):
         metrics_pa, acc_pa = performance_pairwise_approach(datum, percentage_of_top_samples)
         acc = acc_sa + acc_pa + [0] * (len(metrics_sa[0]) - 4)
         metrics.append(metrics_sa + metrics_pa + [acc])
-        np.save(os.getcwd() + "/extrapolation_xgb_reg_chembl/" + "extrapolation_xgb_reg_chembl_cv_temperary_"+str(current_data_id)+".npy", np.array(metrics))
+        np.save(os.getcwd() + "/extrapolation_lr_reg_chembl/" + "extrapolation_lr_reg_chembl_cv_temperary_"+str(current_data_id)+".npy", np.array(metrics))
 
     return np.array([metrics])
