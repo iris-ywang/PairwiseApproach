@@ -74,7 +74,12 @@ def pair_2samples(n_columns, sample_a, sample_b, feature_variation):
 
     a = sample_a[0, 1:]
     b = sample_b[0, 1:]
-    new_sample += list(a - b + (a + b - 0.5).astype(int) * 2)
+    # a = np.array([1, 0, 0, 1])
+    # b = np.array([0, 0, 1, 1])
+    # new_sample = array([-1,  2, -2,  1])
+    new_sample += list(a - b * 2 - a * 2 * np.sign(a - b) + 2 * (1 - np.abs(a - b)))
+
+    # new_sample += list(a - b + (a + b - 0.5).astype(int) * 2)
 
     if with_similarity:
         new_sample += similarity_metrics(np.array([sample_a[0, 1:]]), np.array([sample_b[0, 1:]]))
