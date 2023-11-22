@@ -5,14 +5,13 @@ Created on Mon Apr 25 18:00:02 2022
 
 @author: dangoo
 """
-#rating_related - mainly trueskill
-
 
 from trueskill import Rating, rate_1vs1 
 import numpy as np
 from sklearn.metrics import mean_squared_error, ndcg_score
 from scipy.stats import spearmanr, kendalltau
-
+from ScoreBasedTrueSkill.score_based_bayesian_rating import ScoreBasedBayesianRating as sd_rate_1vs1
+from ScoreBasedTrueSkill.rating import Rating as SDRating
 
 
 
@@ -41,6 +40,21 @@ def rating_trueskill(comparison_results_lst, test_combs_lst, y_true):
     
     return final_ranking
 
+
+def rating_sbbr(comparison_results_lst, test_combs_lst, y_true):
+    nsamples = len(y_true)
+    ncomparisons = len(comparison_results_lst)
+    # mean_train = np.mean(y_true[train_ids])
+    # dev_train = mean_train / 3
+    # beta = mean_train / 6
+    ranking = [[SDRating()] for _ in range(nsamples)]
+
+    for comp_id in range(ncomparisons):
+        ida, idb = test_combs_lst[comp_id]
+        comp_result = comparison_results_lst[comp_id]
+        sd_rate_1vs1([ranking[ida], ranking[idb]], [comp_result, 0]).update_skills()
+
+    return np.array([i[0].mean for i in ranking])
 
 
 def evaluation(dy, combs_lst, train_ids, test_ids, y_true, func = rating_trueskill, params = None):
