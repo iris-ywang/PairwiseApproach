@@ -77,7 +77,7 @@ def pair_2samples(n_columns, sample_a, sample_b, feature_variation):
     # a = np.array([1, 0, 0, 1])
     # b = np.array([0, 0, 1, 1])
     # new_sample = array([-1,  2, -2,  1])
-    new_sample += list(a - b * 2 - a * 2 * np.sign(a - b) + 2 * (1 - np.abs(a - b)))
+    new_sample += get_pairwise_features(a, b)
 
     # new_sample += list(a - b + (a + b - 0.5).astype(int) * 2)
 
@@ -140,3 +140,21 @@ class PairingDatasetByPairID:
 
         pair_ab = pair_2samples(self.n_columns, sample_a, sample_b, self.feature_variation)
         return (sample_id_a, sample_id_b), pair_ab
+
+def get_pairwise_features(x1, x2):
+    # Convert input lists to NumPy arrays
+    x1 = np.array(x1)
+    x2 = np.array(x2)
+    # Initialize the result array with zeros
+    y = np.zeros_like(x1, dtype=int)
+    # Conditions for different cases
+    condition1 = np.logical_and(x1 == 1, x2 == 1)
+    condition2 = np.logical_and(x1 == 0, x2 == 0)
+    condition3 = np.logical_and(x1 == 1, x2 == 0)
+    condition4 = np.logical_and(x1 == 0, x2 == 1)
+    # Apply the conditions to set values in the result array
+    y[condition1] = 2
+    y[condition2] = 1
+    y[condition3] = -1
+    y[condition4] = -2
+    return y.tolist()
