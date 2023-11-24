@@ -65,8 +65,8 @@ if __name__ == '__main__':
             continue
         # TODO: may need to change the way of getting parent directory if this does not work on windows
         filename = chembl_info.iloc[file]["File name"]
-        logging.info("On Dataset No.", count, ", ", filename)
-
+        logging.info(f"On Dataset No. {count} , {filename}")
+        if filename != "data_CHEMBL1628470.csv": continue
         with open(log_file_name, 'a') as f:
             f.write(filename + "\n")
 
@@ -82,12 +82,12 @@ if __name__ == '__main__':
         logging.info("Generating datasets...")
         start = time.time()
         data = generate_train_test_sets_ids(train_test, fold=10)
-        logging.info(":::Time used: ", time.time() - start)
+        logging.info(f":::Time used: {time.time() - start} \n")
 
         logging.info("Running models...")
         start = time.time()
         metrics = run_model(data, current_dataset_count=count, percentage_of_top_samples=0.1)
-        logging.info(":::Time used: ", time.time() - start, "\n")
+        logging.info(f":::Time used: {time.time() - start} \n")
 
         all_metrics.append(metrics)
         np.save("boolean_chembl_trueskill_sb_variations_rf_run1.npy", np.array(all_metrics))
