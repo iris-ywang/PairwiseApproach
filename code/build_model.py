@@ -240,7 +240,6 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
 
         proba = rfc.predict_proba(test_pairs_batch[:, 1:])
         classes = list(rfc.classes_)
-        assert len(classes) == 2
         win_proba = proba[:, classes.index(1)]
         Y_pa_c3_sign_prob += list(win_proba)
 

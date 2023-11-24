@@ -66,7 +66,7 @@ if __name__ == '__main__':
         # TODO: may need to change the way of getting parent directory if this does not work on windows
         filename = chembl_info.iloc[file]["File name"]
         logging.info(f"On Dataset No. {count} , {filename}")
-        if filename != "data_CHEMBL1628470.csv": continue
+
         with open(log_file_name, 'a') as f:
             f.write(filename + "\n")
 
