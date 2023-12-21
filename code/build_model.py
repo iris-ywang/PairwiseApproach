@@ -168,7 +168,7 @@ def results_of_pairwise_combinations(
     return [metrics_sign_Yc2, metrics_sign_Yc2c3, metrics_sign_Yc1c2c3, metrics_est]
 
 
-def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_size=200000):
+def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_size=500000):
     runs_of_estimators = len(all_data["train_pair_ids"]) // batch_size
     Y_pa_c1_sign, Y_pa_c1 = [], []
 
