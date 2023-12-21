@@ -4,7 +4,7 @@ from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, ndcg_score, accuracy_score
 from scipy.stats import spearmanr, kendalltau
 from extrapolation_evaluation import EvaluateAbilityToIdentifyTopTestSamples
-from pa_basics.all_pairs import paired_data_by_pair_id
+from pa_basics.all_pairs import pair_by_pair_id_per_feature
 from pa_basics.rating import rating_trueskill, rating_sbbr
 
 
@@ -175,7 +175,8 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
     if runs_of_estimators >= 1:
         raise ValueError("Training size too large. Reduce training set size or increase batch size allowrance")
 
-    train_pairs_batch = paired_data_by_pair_id(all_data["train_test"], all_data['train_pair_ids'])
+    train_pairs_batch = pair_by_pair_id_per_feature(all_data["train_test"], all_data['train_pair_ids'])
+    print(train_pairs_batch[0])
 
     # training on signs - rfc
     train_pairs_for_sign = np.array(train_pairs_batch)
@@ -207,7 +208,7 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
                                  test_batch * batch_size: (test_batch + 1) * batch_size]
         else:
             test_pair_id_batch = c2_test_pair_ids[test_batch * batch_size:]
-        test_pairs_batch = paired_data_by_pair_id(all_data["train_test"], test_pair_id_batch)
+        test_pairs_batch = pair_by_pair_id_per_feature(all_data["train_test"], test_pair_id_batch)
 
         Y_pa_c2_sign += list(rfc.predict(test_pairs_batch[:, 1:]))
         Y_pa_c2_abs += list(rfr.predict(np.absolute(test_pairs_batch[:, 1:])))
@@ -230,7 +231,7 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
                                  test_batch * batch_size: (test_batch + 1) * batch_size]
         else:
             test_pair_id_batch = c3_test_pair_ids[test_batch * batch_size:]
-        test_pairs_batch = paired_data_by_pair_id(all_data["train_test"], test_pair_id_batch)
+        test_pairs_batch = pair_by_pair_id_per_feature(all_data["train_test"], test_pair_id_batch)
         # Y_pa_c3_batch_prediction = rfc.predict(test_pairs_batch[:, 1:])
 
         Y_pa_c3_sign += list(rfc.predict(test_pairs_batch[:, 1:]))
@@ -273,10 +274,10 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
 
 
 def run_model(data, current_dataset_count, percentage_of_top_samples):
-    temporary_file_dataset_count = int(np.load("extrapolation_mp_band_gap_temp_dataset_count.npy"))
+    temporary_file_dataset_count = int(np.load("extrapolation_mp_band_gap2_temp_dataset_count.npy"))
 
     if current_dataset_count == temporary_file_dataset_count:
-        existing_iterations = np.load("extrapolation_mp_band_gap_temp.npy")
+        existing_iterations = np.load("extrapolation_mp_band_gap2_temp.npy")
         existing_count = len(existing_iterations)
         metrics = list(existing_iterations)
     else:
@@ -297,7 +298,7 @@ def run_model(data, current_dataset_count, percentage_of_top_samples):
         metrics_est = [ls + [0] * (len(metrics_sa[0]) - 6) for ls in (metrics_est_sa + metrics_est_pa)]
         metrics.append(metrics_sa + metrics_pa + [acc] + metrics_est)
 
-        np.save("extrapolation_mp_band_gap_temp_dataset_count.npy", [current_dataset_count])
-        np.save("extrapolation_mp_band_gap_temp.npy", np.array(metrics))
+        np.save("extrapolation_mp_band_gap2_temp_dataset_count.npy", [current_dataset_count])
+        np.save("extrapolation_mp_band_gap2_temp.npy", np.array(metrics))
 
     return np.array([metrics])
