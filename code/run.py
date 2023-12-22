@@ -25,13 +25,13 @@ def transform_categorical_columns(train_test, col_not_value):
 
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
-    filename = "mp_band_gap.csv"
+    filename = "icsd_formation_energy.csv"
     whole_dataset = pd.read_csv(f"input//{filename}")
     random_states = list(range(0, 10))
     sizes = [50, 100, 200, 300, 400, 500]
 
     try:
-        existing_results = np.load("extrapolation_mp_band_gap2.npy")
+        existing_results = np.load("extrapolation_icsd_formation_energy.npy")
         existing_count = len(existing_results)
         all_metrics = list(existing_results)
     except:
@@ -40,9 +40,9 @@ if __name__ == '__main__':
         all_metrics = []
 
     try:
-        _ = np.load("extrapolation_mp_band_gap2_temp_dataset_count.npy")
+        _ = np.load("extrapolation_icsd_formation_energy_temp_dataset_count.npy")
     except:
-        np.save("extrapolation_mp_band_gap2_temp_dataset_count.npy", [0])
+        np.save("extrapolation_icsd_formation_energy_temp_dataset_count.npy", [0])
 
     count = 0
     for rs, n_samples in product(random_states, sizes):
@@ -66,4 +66,4 @@ if __name__ == '__main__':
         all_metrics.append(metrics[0])
         logging.info("Finished")
         print(np.nanmean(metrics[0], axis=0))
-        np.save("extrapolation_mp_band_gap2.npy", np.array(all_metrics))
+        np.save("extrapolation_icsd_formation_energy.npy", np.array(all_metrics))

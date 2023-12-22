@@ -274,10 +274,10 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
 
 
 def run_model(data, current_dataset_count, percentage_of_top_samples):
-    temporary_file_dataset_count = int(np.load("extrapolation_mp_band_gap2_temp_dataset_count.npy"))
+    temporary_file_dataset_count = int(np.load("extrapolation_icsd_formation_energy_temp_dataset_count.npy"))
 
     if current_dataset_count == temporary_file_dataset_count:
-        existing_iterations = np.load("extrapolation_mp_band_gap2_temp.npy")
+        existing_iterations = np.load("extrapolation_icsd_formation_energy_temp.npy")
         existing_count = len(existing_iterations)
         metrics = list(existing_iterations)
     else:
@@ -298,7 +298,7 @@ def run_model(data, current_dataset_count, percentage_of_top_samples):
         metrics_est = [ls + [0] * (len(metrics_sa[0]) - 6) for ls in (metrics_est_sa + metrics_est_pa)]
         metrics.append(metrics_sa + metrics_pa + [acc] + metrics_est)
 
-        np.save("extrapolation_mp_band_gap2_temp_dataset_count.npy", [current_dataset_count])
-        np.save("extrapolation_mp_band_gap2_temp.npy", np.array(metrics))
+        np.save("extrapolation_icsd_formation_energy_temp_dataset_count.npy", [current_dataset_count])
+        np.save("extrapolation_icsd_formation_energy_temp.npy", np.array(metrics))
 
     return np.array([metrics])
