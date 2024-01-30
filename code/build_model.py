@@ -1,4 +1,6 @@
 import numpy as np
+import pickle
+import os
 
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, ndcg_score, accuracy_score
@@ -270,6 +272,19 @@ def performance_pairwise_approach(all_data, percentage_of_top_samples, batch_siz
     metrics_pair_res = metrics_trueskill[:3] + metrics_sd_trueskill_regY[:3] + metrics_sd_trueskill_proba_sign_abs[:3]
     # list of 3 rows of size 6. each of them is from on rating scheme.
     metrics_est = [metrics_trueskill[3]] + [metrics_sd_trueskill_regY[3]] + [metrics_sd_trueskill_proba_sign_abs[3]]
+
+    directory = os.getcwd() + "//extrapolation_icsd_formation_energy_rf_models//"
+    try:
+        n_files = len(os.listdir(directory))
+    except:
+        os.mkdir(directory)
+        n_files = 0
+
+    with open(f'{directory}RF_{n_files + 1}.pkl', 'wb') as f:
+        pickle.dump(rfr, f)
+    with open(f'{directory}RF_{n_files + 2}.pkl', 'wb') as f:
+        pickle.dump(rfrb, f)
+
     return metrics_pair_res, [acc_c2, acc_c3], metrics_est
 
 
